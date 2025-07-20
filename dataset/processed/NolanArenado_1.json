@@ -1,0 +1,35 @@
+{
+  "version": "5.2.1",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "defect",
+      "points": [
+        [
+          977.0,
+          916.0
+        ],
+        [
+          975.0,
+          1010.0
+        ],
+        [
+          1549.0,
+          1080.0
+        ],
+        [
+          1553.0,
+          966.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "NolanArenado_1.png",
+  "imageData": null,
+  "imageHeight": 4032,
+  "imageWidth": 3024
+}

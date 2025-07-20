@@ -1,0 +1,139 @@
+{
+  "version": "5.2.1",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "defect",
+      "points": [
+        [
+          237.0,
+          2246.0
+        ],
+        [
+          243.0,
+          2326.0
+        ],
+        [
+          1431.0,
+          2432.0
+        ],
+        [
+          1413.0,
+          2324.0
+        ],
+        [
+          757.0,
+          2204.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {}
+    },
+    {
+      "label": "defect",
+      "points": [
+        [
+          283.0,
+          3518.0
+        ],
+        [
+          309.0,
+          3602.0
+        ],
+        [
+          1365.0,
+          3428.0
+        ],
+        [
+          1351.0,
+          3306.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {}
+    },
+    {
+      "label": "defect",
+      "points": [
+        [
+          2085.0,
+          1430.0
+        ],
+        [
+          2195.0,
+          1436.0
+        ],
+        [
+          2229.0,
+          926.0
+        ],
+        [
+          2127.0,
+          950.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {}
+    },
+    {
+      "label": "defect",
+      "points": [
+        [
+          573.0,
+          1090.0
+        ],
+        [
+          505.0,
+          1154.0
+        ],
+        [
+          237.0,
+          926.0
+        ],
+        [
+          291.0,
+          876.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {}
+    },
+    {
+      "label": "defect",
+      "points": [
+        [
+          2203.0,
+          2942.0
+        ],
+        [
+          2267.0,
+          2966.0
+        ],
+        [
+          2457.0,
+          2510.0
+        ],
+        [
+          2373.0,
+          2478.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "RogerCraig_1.png",
+  "imageData": null,
+  "imageHeight": 4032,
+  "imageWidth": 3024
+}

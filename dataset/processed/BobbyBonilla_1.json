@@ -1,0 +1,35 @@
+{
+  "version": "5.2.1",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "defect",
+      "points": [
+        [
+          458.3414634146343,
+          1201.3658536585367
+        ],
+        [
+          458.3414634146343,
+          1294.048780487805
+        ],
+        [
+          1107.1219512195123,
+          1408.6829268292684
+        ],
+        [
+          1104.6829268292684,
+          1225.7560975609756
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "BobbyBonilla_1.png",
+  "imageData": null,
+  "imageHeight": 4032,
+  "imageWidth": 3024
+}
