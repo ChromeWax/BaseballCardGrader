@@ -1,0 +1,146 @@
+﻿@page "/capture"
+@using CardGraderMAUI.Services
+@inject IJSRuntime JS
+@inject CameraService CameraService
+@inject CapturedImageStoreService ImageStoreService
+@inject OverlayImageProcessingService OverlayProcessingService
+@inject IImageProcessingService ImageProcessingService
+
+<h3>Capture Image</h3>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 30px; padding-top: 20px;">
+
+    <style>
+        .photo-box {
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px dashed #ccc;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background-color: #f5f5f5;
+        }
+
+        .photo-box:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
+            border-color: #0078d7;
+        }
+
+        .photo-img {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        .camera-icon {
+            width: 40px;
+            height: 40px;
+            opacity: 0.6;
+            z-index: 2;
+        }
+    </style>
+
+    <div>
+        <div class="photo-box" @onclick="@(() => CaptureAndSetImage("upImg"))">
+            <img id="upImg" class="photo-img" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />
+            <img src="images/camera_icon.jpg" class="camera-icon" />
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: center; gap: 60px;">
+        <div>
+            <div class="photo-box" @onclick="@(() => CaptureAndSetImage("leftImg"))">
+                <img id="leftImg" class="photo-img" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />
+                <img src="images/camera_icon.jpg" class="camera-icon" />
+            </div>
+        </div>
+        <div>
+            <div class="photo-box" @onclick="@(() => CaptureAndSetImage("rightImg"))">
+                <img id="rightImg" class="photo-img" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />
+                <img src="images/camera_icon.jpg" class="camera-icon" />
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="photo-box" @onclick="@(() => CaptureAndSetImage("downImg"))">
+            <img id="downImg" class="photo-img" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />
+            <img src="images/camera_icon.jpg" class="camera-icon" />
+        </div>
+    </div>
+
+    <div style="padding-top: 30px;">
+        <button class="btn btn-primary" @onclick="GenerateOverlay">Generate Overlay</button>
+    </div>
+
+</div>
+
+@code {
+    private Dictionary<string, byte[]> _capturedImages = new();
+
+    private async Task CaptureAndSetImage(string imgId)
+    {
+        try
+        {
+            var photo = await CameraService.CapturePhotoAsync();
+            if (photo != null)
+            {
+                using var stream = await photo.OpenReadAsync();
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                var imageBytes = memoryStream.ToArray();
+
+                // Store the image in the persistent service
+                ImageStoreService.SaveImage(imgId, imageBytes);
+
+                var base64 = Convert.ToBase64String(imageBytes);
+                var imageDataUrl = $"data:{photo.ContentType};base64,{base64}";
+
+                await JS.InvokeVoidAsync("updateImage", imgId, imageDataUrl);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Camera error: {ex.Message}");
+        }
+    }
+
+
+    private async Task GenerateOverlay(MouseEventArgs args)
+    {
+        Console.WriteLine("GenerateOverlay button clicked");
+
+        try
+        {
+            // Use Task.Run to offload CPU-bound work to a background thread
+            await Task.Run(async () =>
+            {
+
+                var images = new Dictionary<string, byte[]>
+                            {
+                                { "top", ImageStoreService.GetImage("top") },
+                                { "bottom", ImageStoreService.GetImage("bottom") },
+                                { "left", ImageStoreService.GetImage("left") },
+                                { "right", ImageStoreService.GetImage("right") }
+                            };
+
+                var overlayStream = await OverlayProcessingService.GenerateImageFromBytesAsync(images);
+                Console.WriteLine("✅ Overlay generation completed");
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌✅❌ Error in GenerateOverlay: {ex.Message}");
+        }
+    }
+
+}
