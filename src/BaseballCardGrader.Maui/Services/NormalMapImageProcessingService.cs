@@ -4,7 +4,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace BaseballCardGrader.Maui.Services;
 
-public class NormalMapImageProcessingService : IImageProcessingService
+public class NormalMapImageProcessingService : ImageProcessingService
 {
     public override async Task<Stream> GenerateImage(Dictionary<string, IBrowserFile> imageFiles)
     {
@@ -14,8 +14,8 @@ public class NormalMapImageProcessingService : IImageProcessingService
         var rightTask = await LoadGrayImage(imageFiles["right"]);
         
         var pictures = new[]{topTask, bottomTask, leftTask, rightTask};
-        int width = pictures[0].Width;
-        int height = pictures[0].Height;
+        var width = pictures[0].Width;
+        var height = pictures[0].Height;
 
         using Image<Rgb24> aboveLeft = new Image<Rgb24>(width, height);
         using Image<Rgb24> bottomRight = new Image<Rgb24>(width, height);

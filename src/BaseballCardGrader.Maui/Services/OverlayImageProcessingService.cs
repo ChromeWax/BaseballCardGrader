@@ -3,24 +3,17 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace BaseballCardGrader.Maui.Services;
-
-public class OverlayImageProcessingService : IImageProcessingService
+public class OverlayImageProcessingService : ImageProcessingService
 {
     public override async Task<Stream> GenerateImage(Dictionary<string, IBrowserFile> imageFiles)
     {
         // Load all images as grayscale Mats
-        var topTask = await LoadGrayImage(imageFiles["top"]);
-        var bottomTask = await LoadGrayImage(imageFiles["bottom"]);
-        var leftTask = await LoadGrayImage(imageFiles["left"]);
-        var rightTask = await LoadGrayImage(imageFiles["right"]);
+        var topDesaturatedImage = await LoadGrayImage(imageFiles["top"]);
+        var bottomDesaturatedImage= await LoadGrayImage(imageFiles["bottom"]);
+        var leftDesaturatedImage= await LoadGrayImage(imageFiles["left"]);
+        var rightDesaturatedImage = await LoadGrayImage(imageFiles["right"]);
 
-        Image<L8>[] pictures = new[] {topTask, bottomTask, leftTask, rightTask};
-        var top = pictures[0];
-        var bottom = pictures[1];
-        var left = pictures[2];
-        var right = pictures[3];
-
-        using var result = CreateBlendedImage(top, bottom, left, right);
+        using var result = CreateBlendedImage(topDesaturatedImage, bottomDesaturatedImage, leftDesaturatedImage, rightDesaturatedImage);
 
         var output = new MemoryStream();
         await result.SaveAsJpegAsync(output);
