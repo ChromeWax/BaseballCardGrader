@@ -247,29 +247,28 @@ def train_loop(model,
         getattr(torch, device.type).empty_cache()
 
 if __name__ ==  "__main__":
-    '''
-    These are specific paths for dataset, checkpoints, and other files
-    '''
-    # Path for dataset
-    dataset_path = Path("./Images")
-    image_file_paths = list(dataset_path.glob("*.png"))
-    annotation_file_paths = list(dataset_path.glob("*.json"))
+    if len(sys.argv) != 3:
+        print("Needs path to dataset and path to save model output")
+        exit()
 
-    # Name of the font file
-    font_file = 'KFOlCnqEu92Fr1MmEU9vAw.ttf'
+    # Name of the model
+    model_name = "BaseballCardGraderModel"
 
-    '''
-    This sets up the device and datatype
-    '''
     # Gets device for training
     device = get_torch_device()
     dtype = torch.float32
 
-    '''
-    This grabs the dataset and creates a dataframe for them
-    '''
-    # Dictionary to map each file name to path
+    # Paths for dataset and checkpoint directory
+    dataset_directory = Path(sys.argv[1])
+    checkpoint_directory = Path(sys.argv[2]) 
+    checkpoint_path = checkpoint_directory/f"{model_name}.pth"
+
+    # Gets all image file paths in the dataset directory
+    image_file_paths = list(dataset_directory.glob("*.png"))
     image_dict = {file.stem : file for file in image_file_paths}
+
+    # Gets all annotation file paths in the dataset directory
+    annotation_file_paths = list(dataset_directory.glob("*.json"))
 
     # Dataframe for annotations
     cls_dataframes = (pd.read_json(file_path, orient='index').transpose() for file_path in annotation_file_paths)
@@ -280,61 +279,33 @@ if __name__ ==  "__main__":
     # Dataframe for segmentations of annotations
     shapes_df = annotation_df['shapes'].explode().to_frame().shapes.apply(pd.Series)
 
-    # Gets unique list of classes, in this case just one
+    # Gets unique list of classes, in this case just one, and adds 'background' class
     class_names = shapes_df['label'].unique().tolist()
-
-    # The Mask R-CNN model expects datasets to have a background class
     class_names = ['background'] + class_names
 
     # Generate a list of colors with a length equal to the number of labels
     colors = distinctipy.get_colors(len(class_names))
     int_colors = [tuple(int(c*255) for c in color) for color in colors]
 
-    draw_bboxes = partial(draw_bounding_boxes, fill=False, width=2, font=font_file, font_size=25)
-
-    '''
-    This loads the Mask R-CNN Model 
-    '''
     # Initialize a Mask R-CNN model with pretrained weights
     model = maskrcnn_resnet50_fpn_v2(weights='DEFAULT')
-
-    # Get the number of input features for the classifier
     in_features_box = model.roi_heads.box_predictor.cls_score.in_features
     in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
-
-    # Get the numbner of output channels for the Mask Predictor
     dim_reduced = model.roi_heads.mask_predictor.conv5_mask.out_channels
-
-    # Replace the box predictor
     model.roi_heads.box_predictor = FastRCNNPredictor(in_channels=in_features_box, num_classes=len(class_names))
-
-    # Replace the mask predictor
     model.roi_heads.mask_predictor = MaskRCNNPredictor(in_channels=in_features_mask, dim_reduced=dim_reduced, num_classes=len(class_names))
-
-    # Set the model's device and data type
     model.to(device=device, dtype=dtype);
-
-    # Add attributes to store the device and model name for later reference
     model.device = device
-    model.name = 'maskrcnn_resnet50_fpn_v2'
-
-    '''
-    This splits the available data into training and validation data
-    '''
-    # Get list of image IDs
-    image_keys = list(image_dict.keys())
-
-    # Shuffles IDs
-    random.shuffle(image_keys)
+    model.name = model_name
 
     # Split the subset of image paths into training and validation sets
     train_percentage = 0.75
+    image_keys = list(image_dict.keys())
+    random.shuffle(image_keys)
     train_keys = image_keys[ : int(len(image_keys) * train_percentage)]
     valid_keys = image_keys[int(len(image_keys) * train_percentage) : ]
 
-    '''
-    This creates additional training and validation data
-    '''
+    # Define data augmentation transforms
     data_augment_transforms = transforms.Compose(
         transforms=[
             transforms.ColorJitter(
@@ -347,19 +318,16 @@ if __name__ ==  "__main__":
             transforms.RandomVerticalFlip(p=0.5),
         ],
     )
-
     # Compose transforms to sanitize bounding boxes and normalize input data
     final_tranforms = transforms.Compose([
         transforms.ToImage(), 
         transforms.ToDtype(torch.float32, scale=True),
         transforms.SanitizeBoundingBoxes(),
     ])
-
-    # Compose transforms to resize and pad input images
+    # Compose transforms to resize images
     resize_tranforms = transforms.Compose([
-        transforms.Resize([640, 480], antialias=True)
+        transforms.Resize(size=(800,), max_size=1333, antialias=True)
     ])
-
     # Define the transformations for training and validation datasets
     train_tfms = transforms.Compose([
         data_augment_transforms, 
@@ -371,72 +339,35 @@ if __name__ ==  "__main__":
         final_tranforms
     ])
 
-    '''
-    Initialize Datasets
-    '''
-    # Create a mapping from class names to class indices
-    class_to_idx = {c: i for i, c in enumerate(class_names)}
-
     # Instantiate the datasets using the defined transformations
+    class_to_idx = {c: i for i, c in enumerate(class_names)}
     train_dataset = BaseballCardDataset(train_keys, annotation_df, image_dict, class_to_idx, train_tfms)
     valid_dataset = BaseballCardDataset(valid_keys, annotation_df, image_dict, class_to_idx, valid_tfms)
 
-    '''
-    Initialize Dataloaders
-    '''
-    # Set the training batch size
-    bs = 4
-
     # Define parameters for DataLoader
     data_loader_params = {
-        'batch_size': bs,  # Batch size for data loading
+        'batch_size': 4,  # Batch size for data loading
         'num_workers': 4,  # Number of subprocesses to use for data loading
         'persistent_workers': True,  # If True, the data loader will not shutdown the worker processes after a dataset has been consumed once. This allows to maintain the worker dataset instances alive.
         'pin_memory': 'cuda' in device,  # If True, the data loader will copy Tensors into CUDA pinned memory before returning them. Useful when using GPU.
         'pin_memory_device': device if 'cuda' in device else '',  # Specifies the device where the data should be loaded. Commonly set to use the GPU.
         'collate_fn': custom_collate_fn,
     }
-
     # Create DataLoader for training data. Data is shuffled for every epoch.
     train_dataloader = DataLoader(train_dataset, **data_loader_params, shuffle=True)
-
     # Create DataLoader for validation data. Shuffling is not necessary for validation data.
     valid_dataloader = DataLoader(valid_dataset, **data_loader_params)
 
-    '''
-    Set Model Checkpoint
-    '''
-    # Create a directory to store the checkpoints if it does not already exist
-    checkpoint_directory = Path("./Checkpoints")
-    # The model checkpoint path
-    checkpoint_path = checkpoint_directory/f"{model.name}.pth"
-
-    '''
-    Saves Color Map
-    '''
     # Create a color map and write it to a JSON file
     color_map = {'items': [{'label': label, 'color': color} for label, color in zip(class_names, colors)]}
-    with open(f"{checkpoint_directory}/{dataset_path.name}-colormap.json", "w") as file:
+    with open(f"{checkpoint_directory}/{dataset_directory.name}-colormap.json", "w") as file:
         json.dump(color_map, file)
 
-    '''
-    Configures training parameters
-    '''
-    # Learning rate for the model
+    # Trains the model
     lr = 5e-4
-
-    # Number of training epochs
     epochs = 60
-
-    # AdamW optimizer; includes weight decay for regularization
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
-
-    # Learning rate scheduler; adjusts the learning rate during training
     lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=lr, total_steps=epochs*len(train_dataloader))
-
-    '''
-    Trains Model
-    '''
     train_loop(model=model, 
             train_dataloader=train_dataloader,
             valid_dataloader=valid_dataloader,
