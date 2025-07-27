@@ -1,4 +1,6 @@
 # Import Python Standard Library dependencies
+import sys
+
 import json
 from pathlib import Path
 
@@ -15,71 +17,78 @@ import onnx # Import the onnx module
 from onnxsim import simplify # Import the method to simplify ONNX models
 import onnxruntime as ort # Import the ONNX Runtime
 
-# The path to the checkpoint folder
-checkpoint_directory = Path("./Checkpoints")
+if __name__ == "__main__":
+        if len(sys.argv) != 2:
+                print("Needs path to model")
+                exit()
 
-# The colormap path
-colormap_path = list(checkpoint_directory.glob('*colormap.json'))[0]
+        model_name = "BaseballCardGraderModel"
 
-# Load the JSON colormap data
-with open(colormap_path, 'r') as file:
-        colormap_json = json.load(file)
+        # The path to the checkpoint folder
+        checkpoint_directory = Path(sys.argv[1]) 
 
-# Convert the JSON data to a dictionary        
-colormap_dict = {item['label']: item['color'] for item in colormap_json['items']}
+        # The colormap path
+        colormap_path = list(checkpoint_directory.glob('*colormap.json'))[0]
 
-# Extract the class names from the colormap
-class_names = list(colormap_dict.keys())
+        # Load the JSON colormap data
+        with open(colormap_path, 'r') as file:
+                colormap_json = json.load(file)
 
-# Make a copy of the colormap in integer format
-int_colors = [tuple(int(c*255) for c in color) for color in colormap_dict.values()]
+        # Convert the JSON data to a dictionary        
+        colormap_dict = {item['label']: item['color'] for item in colormap_json['items']}
 
-# The model checkpoint path
-checkpoint_path = list(checkpoint_directory.glob('*.pth'))[0]
+        # Extract the class names from the colormap
+        class_names = list(colormap_dict.keys())
 
-# Load the model checkpoint onto the CPU
-model_checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        # Make a copy of the colormap in integer format
+        int_colors = [tuple(int(c*255) for c in color) for color in colormap_dict.values()]
 
-# Initialize a Mask R-CNN model
-model = maskrcnn_resnet50_fpn_v2(weights='DEFAULT')
+        # The model checkpoint path
+        checkpoint_path = list(checkpoint_directory.glob('*.pth'))[0]
 
-# Get the number of input features for the classifier
-in_features_box = model.roi_heads.box_predictor.cls_score.in_features
-in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
+        # Load the model checkpoint onto the CPU
+        model_checkpoint = torch.load(checkpoint_path, map_location='cpu')
 
-# Replace the box predictor
-model.roi_heads.box_predictor = FastRCNNPredictor(in_features_box, len(class_names))
+        # Initialize a Mask R-CNN model
+        model = maskrcnn_resnet50_fpn_v2(weights='DEFAULT')
 
-# Replace the mask predictor
-model.roi_heads.mask_predictor = MaskRCNNPredictor(in_channels=in_features_mask, dim_reduced=256, num_classes=len(class_names))
+        # Get the number of input features for the classifier
+        in_features_box = model.roi_heads.box_predictor.cls_score.in_features
+        in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
 
-# Initialize the model with the checkpoint parameters and buffers
-model.load_state_dict(model_checkpoint)
+        # Replace the box predictor
+        model.roi_heads.box_predictor = FastRCNNPredictor(in_features_box, len(class_names))
 
-model.name = 'maskrcnn_resnet50_fpn_v2'
+        # Replace the mask predictor
+        model.roi_heads.mask_predictor = MaskRCNNPredictor(in_channels=in_features_mask, dim_reduced=256, num_classes=len(class_names))
 
-model.eval()
+        # Initialize the model with the checkpoint parameters and buffers
+        model.load_state_dict(model_checkpoint)
 
-input_tensor = torch.randn(1, 3, 256, 256)
+        model.name = model_name
 
-onnx_file_path = f"{checkpoint_directory}/{model.name}.onnx"
+        model.eval()
 
-# Export the PyTorch model to ONNX format
-torch.onnx.export(model.cpu(),
-                  input_tensor.cpu(),
-                  onnx_file_path,
-                  export_params=True,
-                  do_constant_folding=False,
-                  input_names = ['input'],
-                  output_names = ['boxes', 'labels', 'scores', 'masks'],
-                  dynamic_axes={'input': {2 : 'height', 3 : 'width'}}
-                 )
+        input_tensor = torch.randn(1, 3, 256, 256)
 
-# Load the ONNX model from the onnx_file_name
-onnx_model = onnx.load(onnx_file_path)
+        onnx_file_path = f"{checkpoint_directory}/{model.name}.onnx"
 
-# Simplify the model
-model_simp, check = simplify(onnx_model)
+        # Export the PyTorch model to ONNX format
+        torch.onnx.export(model.cpu(),
+                        input_tensor.cpu(),
+                        onnx_file_path,
+                        export_params=True,
+                        do_constant_folding=False,
+                        input_names = ['input'],
+                        output_names = ['boxes', 'labels', 'scores', 'masks'],
+                        dynamic_axes={'input': {2 : 'height', 3 : 'width'}}
+                        )
 
-# Save the simplified model to the onnx_file_name
-onnx.save(model_simp, onnx_file_path)
+        # Load the ONNX model from the onnx_file_name
+        onnx_model = onnx.load(onnx_file_path)
+
+        # Simplify the model
+        model_simp, check = simplify(onnx_model)
+
+        # Save the simplified model to the onnx_file_name
+        onnx.save(model_simp, onnx_file_path)

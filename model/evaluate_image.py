@@ -52,7 +52,7 @@ if __name__=="__main__":
     checkpoint_path = list(checkpoint_directory.glob('*.pth'))[0]
     colormap_path = list(checkpoint_directory.glob('*colormap.json'))[0]
     test_image_path = Path(sys.argv[1])
-    font_file = 'KFOlCnqEu92Fr1MmEU9vAw.ttf'
+    font_file = 'font.ttf'
 
     '''
     Gets device and dtype for evaluating

@@ -58,3 +58,4 @@ nunit-*.xml
 
 #Idea
 .idea
+/model/checkpoint

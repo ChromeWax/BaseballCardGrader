@@ -6,10 +6,12 @@ services:
     volumes:
       - ./dataset:/app/dataset
       - ./checkpoint:/app/checkpoint
-    command: python train_model.py ./dataset/processed ./checkpoint
+    command: python train_model.py ./dataset/processed ./checkpoint && python convert_to_onnx.py ./checkpoint/
     deploy:
       resources:
         reservations:
           devices:
             - capabilities: [gpu]
     ipc: host
+    stdin_open: true
+    tty: true

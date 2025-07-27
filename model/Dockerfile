@@ -1,6 +1,8 @@
 FROM pytorch/pytorch:2.7.0-cuda12.8-cudnn9-runtime
 WORKDIR /app
+COPY ./font.ttf ./font.ttf
 COPY ./train_model.py ./train_model.py
+COPY ./evaluate_image.py ./evaluate_image.py
 COPY ./convert_to_onnx.py ./convert_to_onnx.py
 COPY ./requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
