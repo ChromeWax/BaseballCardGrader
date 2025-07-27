@@ -42,16 +42,16 @@ def move_data_to_device(data, device:torch.device):
         return data
 
 if __name__=="__main__":
-    if len(sys.argv) != 2:
-        print("Needs path to image")
+    if len(sys.argv) != 3:
+        print("Needs path to model and image")
         exit()
     '''
     Path for checkpoint, colormap, and other files
     '''
-    checkpoint_directory = Path("./Checkpoints")
+    checkpoint_directory = Path(sys.argv[1]) 
     checkpoint_path = list(checkpoint_directory.glob('*.pth'))[0]
     colormap_path = list(checkpoint_directory.glob('*colormap.json'))[0]
-    test_image_path = Path(sys.argv[1])
+    test_image_path = Path(sys.argv[2])
     font_file = 'font.ttf'
 
     '''

@@ -361,7 +361,7 @@ if __name__ ==  "__main__":
 
     # Create a color map and write it to a JSON file
     color_map = {'items': [{'label': label, 'color': color} for label, color in zip(class_names, colors)]}
-    with open(f"{checkpoint_directory}/{dataset_directory.name}-colormap.json", "w") as file:
+    with open(f"{checkpoint_directory}/{model_name}-colormap.json", "w") as file:
         json.dump(color_map, file)
 
     # Trains the model
