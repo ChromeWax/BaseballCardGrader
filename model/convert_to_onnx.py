@@ -18,9 +18,6 @@ import onnxruntime as ort # Import the ONNX Runtime
 # The path to the checkpoint folder
 checkpoint_directory = Path("./Checkpoints")
 
-# Set the name of the font file
-font_file = 'KFOlCnqEu92Fr1MmEU9vAw.ttf'
-
 # The colormap path
 colormap_path = list(checkpoint_directory.glob('*colormap.json'))[0]
 

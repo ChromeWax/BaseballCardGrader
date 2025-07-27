@@ -1,0 +1,15 @@
+services:
+  baseball_card_grader_model:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./dataset:/app/dataset
+      - ./checkpoint:/app/checkpoint
+    command: python train_model.py ./dataset/processed ./checkpoint
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    ipc: host
