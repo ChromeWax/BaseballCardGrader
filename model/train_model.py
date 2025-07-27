@@ -4,6 +4,7 @@ import pandas as pd
 import random
 import math
 import json
+import sys
 from tqdm.auto import tqdm
 
 # Used to create unique colors for each class
@@ -326,7 +327,7 @@ if __name__ ==  "__main__":
     ])
     # Compose transforms to resize images
     resize_tranforms = transforms.Compose([
-        transforms.Resize(size=(800,), max_size=1333, antialias=True)
+        transforms.Resize([1120, 800], antialias=True)
     ])
     # Define the transformations for training and validation datasets
     train_tfms = transforms.Compose([
