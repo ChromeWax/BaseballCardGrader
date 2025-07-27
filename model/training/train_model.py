@@ -252,7 +252,7 @@ if __name__ ==  "__main__":
     '''
     # Path for dataset
     dataset_path = Path("./Images")
-    image_file_paths = list(dataset_path.glob("*.jpg"))
+    image_file_paths = list(dataset_path.glob("*.png"))
     annotation_file_paths = list(dataset_path.glob("*.json"))
 
     # Name of the font file
@@ -328,7 +328,7 @@ if __name__ ==  "__main__":
     random.shuffle(image_keys)
 
     # Split the subset of image paths into training and validation sets
-    train_percentage = 0.8
+    train_percentage = 0.75
     train_keys = image_keys[ : int(len(image_keys) * train_percentage)]
     valid_keys = image_keys[int(len(image_keys) * train_percentage) : ]
 
@@ -338,14 +338,11 @@ if __name__ ==  "__main__":
     data_augment_transforms = transforms.Compose(
         transforms=[
             transforms.ColorJitter(
-                    brightness = (0.875, 1.125),
-                    contrast = (0.5, 1.5),
-                    saturation = (0.5, 1.5),
-                    hue = (-0.05, 0.05),
+                    brightness = (0.95, 1.05),
+                    contrast = (0.95, 1.05),
+                    saturation = (0.95, 1.05),
+                    hue = (-0.02, 0.02),
             ),
-            transforms.RandomGrayscale(),
-            transforms.RandomEqualize(),
-            transforms.RandomPosterize(bits=3, p=0.5),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomVerticalFlip(p=0.5),
         ],
@@ -429,7 +426,7 @@ if __name__ ==  "__main__":
     lr = 5e-4
 
     # Number of training epochs
-    epochs = 40
+    epochs = 60
 
     # AdamW optimizer; includes weight decay for regularization
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
