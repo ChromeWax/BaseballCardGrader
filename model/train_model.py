@@ -1,5 +1,4 @@
 from pathlib import Path
-from functools import partial
 import pandas as pd
 import random
 import math
@@ -20,7 +19,6 @@ from torch.utils.data import Dataset, DataLoader
 import torchvision
 torchvision.disable_beta_transforms_warning()
 from torchvision.tv_tensors import BoundingBoxes, Mask
-from torchvision.utils import draw_bounding_boxes
 import torchvision.transforms.v2 as transforms
 
 # Import Mask R-CNN
@@ -85,6 +83,8 @@ def create_polygon_mask(image_size, vertices):
 def get_torch_device():
     if torch.cuda.is_available():
         return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
     else:
         return "cpu"
 
@@ -295,7 +295,7 @@ if __name__ ==  "__main__":
     dim_reduced = model.roi_heads.mask_predictor.conv5_mask.out_channels
     model.roi_heads.box_predictor = FastRCNNPredictor(in_channels=in_features_box, num_classes=len(class_names))
     model.roi_heads.mask_predictor = MaskRCNNPredictor(in_channels=in_features_mask, dim_reduced=dim_reduced, num_classes=len(class_names))
-    model.to(device=device, dtype=dtype);
+    model.to(device=torch.device(device), dtype=dtype)
     model.device = device
     model.name = model_name
 
@@ -346,14 +346,22 @@ if __name__ ==  "__main__":
     valid_dataset = BaseballCardDataset(valid_keys, annotation_df, image_dict, class_to_idx, valid_tfms)
 
     # Define parameters for DataLoader
-    data_loader_params = {
-        'batch_size': 4,  # Batch size for data loading
-        'num_workers': 4,  # Number of subprocesses to use for data loading
-        'persistent_workers': True,  # If True, the data loader will not shutdown the worker processes after a dataset has been consumed once. This allows to maintain the worker dataset instances alive.
-        'pin_memory': 'cuda' in device,  # If True, the data loader will copy Tensors into CUDA pinned memory before returning them. Useful when using GPU.
-        'pin_memory_device': device if 'cuda' in device else '',  # Specifies the device where the data should be loaded. Commonly set to use the GPU.
-        'collate_fn': custom_collate_fn,
-    }
+    if device == "cuda":
+        data_loader_params = {
+            'batch_size': 4,
+            'num_workers': 4,
+            'persistent_workers': True,
+            'pin_memory': True,
+            'pin_memory_device': device,
+            'collate_fn': custom_collate_fn,
+        }
+    else:  # mps or cpu
+        data_loader_params = {
+            'batch_size': 4,
+            'num_workers': 0,
+            'persistent_workers': False,
+            'collate_fn': custom_collate_fn,
+        }
     # Create DataLoader for training data. Data is shuffled for every epoch.
     train_dataloader = DataLoader(train_dataset, **data_loader_params, shuffle=True)
     # Create DataLoader for validation data. Shuffling is not necessary for validation data.
