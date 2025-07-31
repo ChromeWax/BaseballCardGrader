@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BaseballCardGrader.Console"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BaseballCardGrader.Maui", "BaseballCardGrader.Maui\BaseballCardGrader.Maui.csproj", "{9C110D37-73E9-43F7-A74E-BA01A9380686}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BaseballCardGrader.Onnx", "BaseballCardGrader.Onnx\BaseballCardGrader.Onnx.csproj", "{794F2669-FA69-4C55-888C-A0271C4C2F5A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor", "ImageProcessor\ImageProcessor.csproj", "{794F2669-FA69-4C55-888C-A0271C4C2F5A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyMediator", "MyMediator\MyMediator.csproj", "{A0EEE565-F0B2-4269-899F-ADB97DA0205A}"
 EndProject

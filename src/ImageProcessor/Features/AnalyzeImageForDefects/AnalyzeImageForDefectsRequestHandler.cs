@@ -6,7 +6,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace BaseballCardGrader.Onnx.Features.AnalyzeImageForDefects;
+namespace ImageProcessor.Features.AnalyzeImageForDefects;
 
 public class AnalyzeImageForDefectsRequestHandler : IRequestHandler<AnalyzeImageForDefectsRequest, Image<Rgb24>>
 {
