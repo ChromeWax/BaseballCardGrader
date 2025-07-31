@@ -87,7 +87,7 @@ if __name__=="__main__":
     model.to(device)
 
     test_image = Image.open(test_image_path).convert("RGB")
-    resized_image = transforms.Resize([640, 480], antialias=True)(test_image)
+    resized_image = transforms.Resize([1120, 800], antialias=True)(test_image)
     input_tensor = transforms.Compose([transforms.ToImage(), transforms.ToDtype(torch.float32, scale=True)])(resized_image)[None].to(device)
 
     with torch.no_grad():
