@@ -1,4 +1,4 @@
-namespace MyMediator;
+namespace Mediator;
 
 public interface ISender
 {

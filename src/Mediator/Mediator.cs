@@ -1,9 +1,9 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MyMediator;
+namespace Mediator;
 
-public static class MyMediator
+public static class Mediator
 {
     public static IServiceCollection AddMyMediator(this IServiceCollection services, Assembly? assembly = null)
     {

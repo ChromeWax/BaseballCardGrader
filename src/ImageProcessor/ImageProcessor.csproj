@@ -12,7 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\MyMediator\MyMediator.csproj" />
+      <ProjectReference Include="..\Mediator\Mediator.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MyMediator;
+namespace Mediator;
 
 public class Sender(IServiceProvider provider) : ISender
 {

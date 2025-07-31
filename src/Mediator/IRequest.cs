@@ -1,3 +1,3 @@
-namespace MyMediator;
+namespace Mediator;
 
 public interface IRequest<TResponse> {}
