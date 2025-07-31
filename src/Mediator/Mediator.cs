@@ -5,7 +5,7 @@ namespace Mediator;
 
 public static class Mediator
 {
-    public static IServiceCollection AddMyMediator(this IServiceCollection services, Assembly? assembly = null)
+    public static IServiceCollection AddMediator(this IServiceCollection services, Assembly? assembly = null)
     {
         assembly ??= Assembly.GetCallingAssembly();
 
