@@ -18,17 +18,25 @@ public class AnalyzeImageForDefectsRequestHandler : IRequestHandler<AnalyzeImage
         image.Mutate(x => x.Resize(Constants.ResizeImageWidth, Constants.ResizeImageHeight));
 
         // Preprocess image
-        Tensor<float> input = new DenseTensor<float>(new[] { 1, 3, Constants.ResizeImageHeight, Constants.ResizeImageWidth });
+        Tensor<float> input = new DenseTensor<float>([
+            Constants.BatchSize, 
+            Constants.ChannelCount, 
+            Constants.ResizeImageHeight, 
+            Constants.ResizeImageWidth
+        ]);
         image.ProcessPixelRows(accessor =>
         {
-            for (int y = 0; y < Constants.ResizeImageHeight; y++)
+            for (var currentYPosition = 0; currentYPosition < Constants.ResizeImageHeight; currentYPosition++)
             {
-                Span<Rgb24> pixelSpan = accessor.GetRowSpan(y);
-                for (int x = 0; x < Constants.ResizeImageWidth; x++)
+                var pixelSpan = accessor.GetRowSpan(currentYPosition);
+                for (var currentXPosition = 0; currentXPosition < Constants.ResizeImageWidth; currentXPosition++)
                 {
-                    input[0, 0, y, x] = pixelSpan[x].R / 255f; // Red channel
-                    input[0, 1, y, x] = pixelSpan[x].G / 255f; // Green channel
-                    input[0, 2, y, x] = pixelSpan[x].B / 255f; // Blue channel
+                    input[Constants.CurrentBatch, Constants.ChannelRed, currentYPosition, currentXPosition]
+                        = pixelSpan[currentXPosition].R / Constants.MaxIntensityPerChannel; 
+                    input[Constants.CurrentBatch, Constants.ChannelGreen, currentYPosition, currentXPosition]
+                        = pixelSpan[currentXPosition].G / Constants.MaxIntensityPerChannel; 
+                    input[Constants.CurrentBatch, Constants.ChannelBlue, currentYPosition, currentXPosition] 
+                        = pixelSpan[currentXPosition].B / Constants.MaxIntensityPerChannel; 
                 }
             }
         });
@@ -36,7 +44,7 @@ public class AnalyzeImageForDefectsRequestHandler : IRequestHandler<AnalyzeImage
         // Setup inputs and outputs
         var inputs = new List<NamedOnnxValue>
         {
-            NamedOnnxValue.CreateFromTensor("input", input)
+            NamedOnnxValue.CreateFromTensor(Constants.TensorName, input)
         };
 
         // Run inference
@@ -48,6 +56,28 @@ public class AnalyzeImageForDefectsRequestHandler : IRequestHandler<AnalyzeImage
         var labels = results.First(x => x.Name == "labels").AsTensor<long>().ToArray();
         var scores = results.First(x => x.Name == "scores").AsTensor<float>().ToArray();
         var masks = results.First(x => x.Name == "masks").AsTensor<float>().ToArray();
+
+        // Annotate image with masks for scores > 0.5
+        for (var maskIdx = 0; maskIdx < scores.Length; maskIdx++)
+        {
+            if (scores[maskIdx] <= Constants.ScoreThreshold) continue;
+
+            var maskOffset = maskIdx * Constants.ResizeImageHeight * Constants.ResizeImageWidth;
+            for (var i = 0; i < Constants.ResizeImageHeight * Constants.ResizeImageWidth; i++)
+            {
+                if (masks[maskOffset + i] <= Constants.ScoreThreshold) continue;
+
+                var y = i / Constants.ResizeImageWidth;
+                var x = i % Constants.ResizeImageWidth;
+
+                var pixel = image[x, y];
+                image[x, y] = new Rgb24(
+                    (byte)Math.Min(255, pixel.R + 100),
+                    pixel.G,
+                    pixel.B
+                );
+            }
+        }
 
         return Task.FromResult(image);
     }
