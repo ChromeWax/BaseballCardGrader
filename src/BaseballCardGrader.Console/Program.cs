@@ -1,5 +1,5 @@
 using ImageProcessor.DependencyInjection;
-using ImageProcessor.Features.AnalyzeImageForDefects;
+using ImageProcessor.Features.AnnotateImageForDefects;
 using Mediator;
 using Microsoft.Extensions.DependencyInjection;
 using SixLabors.ImageSharp;
@@ -27,7 +27,7 @@ public class Program
 
         var sender = provider.GetRequiredService<ISender>();
 
-        var result = await sender.Send(new AnalyzeImageForDefectsRequest(modelFilePath, imageFilePath));
+        var result = await sender.Send(new AnnotateImageForDefectsRequest(modelFilePath, imageFilePath));
         await result.SaveAsPngAsync(outputImagePath);
     }
 }

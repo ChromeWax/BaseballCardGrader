@@ -1,4 +1,4 @@
-namespace ImageProcessor.Features.AnalyzeImageForDefects;
+namespace ImageProcessor.Features.AnnotateImageForDefects;
 
 public class LabelMap
 {

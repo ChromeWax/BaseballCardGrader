@@ -5,11 +5,11 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace ImageProcessor.Features.AnalyzeImageForDefects;
+namespace ImageProcessor.Features.AnnotateImageForDefects;
 
-public class AnalyzeImageForDefectsRequestHandler : IRequestHandler<AnalyzeImageForDefectsRequest, Image<Rgb24>>
+public class AnnotateImageForDefectsRequestHandler : IRequestHandler<AnnotateImageForDefectsRequest, Image<Rgb24>>
 {
-    public Task<Image<Rgb24>> Handle(AnalyzeImageForDefectsRequest request, CancellationToken cancellationToken)
+    public Task<Image<Rgb24>> Handle(AnnotateImageForDefectsRequest request, CancellationToken cancellationToken)
     {
         // Read image
         var image = Image.Load<Rgb24>(request.ImageFilePath);
