@@ -4,8 +4,6 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.Fonts;
 
 namespace ImageProcessor.Features.AnalyzeImageForDefects;
 
@@ -17,24 +15,20 @@ public class AnalyzeImageForDefectsRequestHandler : IRequestHandler<AnalyzeImage
         var image = Image.Load<Rgb24>(request.ImageFilePath);
 
         // Resize image
-        float ratio = 800f / Math.Min(image.Width, image.Height);
-        image.Mutate(x => x.Resize((int)(ratio * image.Width), (int)(ratio * image.Height)));
+        image.Mutate(x => x.Resize(Constants.ResizeImageWidth, Constants.ResizeImageHeight));
 
         // Preprocess image
-        var paddedHeight = (int)(Math.Ceiling(image.Height / 32f) * 32f);
-        var paddedWidth = (int)(Math.Ceiling(image.Width / 32f) * 32f);
-        Tensor<float> input = new DenseTensor<float>(new[] { 3, paddedHeight, paddedWidth });
-        var mean = new[] { 102.9801f, 115.9465f, 122.7717f };
+        Tensor<float> input = new DenseTensor<float>(new[] { 3, Constants.ResizeImageHeight, Constants.ResizeImageWidth });
         image.ProcessPixelRows(accessor =>
         {
-            for (int y = paddedHeight - accessor.Height; y < accessor.Height; y++)
+            for (int y = 0; y < Constants.ResizeImageHeight; y++)
             {
                 Span<Rgb24> pixelSpan = accessor.GetRowSpan(y);
-                for (int x = paddedWidth - accessor.Width; x < accessor.Width; x++)
+                for (int x = 0; x < Constants.ResizeImageWidth; x++)
                 {
-                    input[0, y, x] = pixelSpan[x].B - mean[0];
-                    input[1, y, x] = pixelSpan[x].G - mean[1];
-                    input[2, y, x] = pixelSpan[x].R - mean[2];
+                    input[0, y, x] = pixelSpan[x].R / 255f; // Red channel
+                    input[1, y, x] = pixelSpan[x].G / 255f; // Green channel
+                    input[2, y, x] = pixelSpan[x].B / 255f; // Blue channel
                 }
             }
         });
@@ -42,7 +36,7 @@ public class AnalyzeImageForDefectsRequestHandler : IRequestHandler<AnalyzeImage
         // Setup inputs and outputs
         var inputs = new List<NamedOnnxValue>
         {
-            NamedOnnxValue.CreateFromTensor("image", input)
+            NamedOnnxValue.CreateFromTensor("input", input)
         };
 
         // Run inference
@@ -50,51 +44,11 @@ public class AnalyzeImageForDefectsRequestHandler : IRequestHandler<AnalyzeImage
         using IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results = session.Run(inputs);
 
         // Postprocess to get predictions
-        var resultsArray = results.ToArray();
-        float[] boxes = resultsArray[0].AsEnumerable<float>().ToArray();
-        long[] labels = resultsArray[1].AsEnumerable<long>().ToArray();
-        float[] confidences = resultsArray[2].AsEnumerable<float>().ToArray();
-        var predictions = new List<Prediction>();
-        var minConfidence = 0.7f;
-        for (int i = 0; i < boxes.Length - 4; i += 4)
-        {
-            var index = i / 4;
-            if (confidences[index] >= minConfidence)
-            {
-                predictions.Add(new Prediction
-                {
-                    Box = new Box(boxes[i], boxes[i + 1], boxes[i + 2], boxes[i + 3]),
-                    Label = LabelMap.Labels[labels[index]],
-                    Confidence = confidences[index]
-                });
-            }
-        }
+        var boxes = results.First(x => x.Name == "boxes").AsTensor<float>().ToArray();
+        var labels = results.First(x => x.Name == "labels").AsTensor<long>().ToArray();
+        var scores = results.First(x => x.Name == "scores").AsTensor<float>().ToArray();
+        var masks = results.First(x => x.Name == "masks").AsTensor<float>().ToArray();
 
-        // Put boxes, labels and confidence on image and save for viewing
-        using var outputImage = File.OpenWrite(outImageFilePath);
-        MediaTypeNames.Font font = SystemFonts.CreateFont("Arial", 16);
-        foreach (var p in predictions)
-        {
-            image.Mutate(x =>
-            {
-                x.DrawLines(Color.Red, 2f, new PointF[] {
-
-                    new PointF(p.Box.Xmin, p.Box.Ymin),
-                    new PointF(p.Box.Xmax, p.Box.Ymin),
-
-                    new PointF(p.Box.Xmax, p.Box.Ymin),
-                    new PointF(p.Box.Xmax, p.Box.Ymax),
-
-                    new PointF(p.Box.Xmax, p.Box.Ymax),
-                    new PointF(p.Box.Xmin, p.Box.Ymax),
-
-                    new PointF(p.Box.Xmin, p.Box.Ymax),
-                    new PointF(p.Box.Xmin, p.Box.Ymin)
-                });
-                x.DrawText($"{p.Label}, {p.Confidence:0.00}", font, Color.White, new PointF(p.Box.Xmin, p.Box.Ymin));
-            });
-        }
-
-        return image;
+        return Task.FromResult(image);
     }
 }
