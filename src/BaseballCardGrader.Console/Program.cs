@@ -2,6 +2,7 @@ using ImageProcessor.DependencyInjection;
 using ImageProcessor.Features.AnalyzeImageForDefects;
 using Mediator;
 using Microsoft.Extensions.DependencyInjection;
+using SixLabors.ImageSharp;
 
 namespace BaseballCardGrader.Console;
 
@@ -17,7 +18,7 @@ public class Program
         
         var modelFilePath = args[0];
         var imageFilePath = args[1];
-        var imageFilePath = args[2];
+        var outputImagePath = args[2];
         
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddImageProcessor();
@@ -27,6 +28,6 @@ public class Program
         var sender = provider.GetRequiredService<ISender>();
 
         var result = await sender.Send(new AnalyzeImageForDefectsRequest(modelFilePath, imageFilePath));
-        result.Save(outputImagePath);
+        await result.SaveAsPngAsync(outputImagePath);
     }
 }
