@@ -18,7 +18,7 @@ public class AnalyzeImageForDefectsRequestHandler : IRequestHandler<AnalyzeImage
         image.Mutate(x => x.Resize(Constants.ResizeImageWidth, Constants.ResizeImageHeight));
 
         // Preprocess image
-        Tensor<float> input = new DenseTensor<float>(new[] { 3, Constants.ResizeImageHeight, Constants.ResizeImageWidth });
+        Tensor<float> input = new DenseTensor<float>(new[] { 1, 3, Constants.ResizeImageHeight, Constants.ResizeImageWidth });
         image.ProcessPixelRows(accessor =>
         {
             for (int y = 0; y < Constants.ResizeImageHeight; y++)
@@ -26,9 +26,9 @@ public class AnalyzeImageForDefectsRequestHandler : IRequestHandler<AnalyzeImage
                 Span<Rgb24> pixelSpan = accessor.GetRowSpan(y);
                 for (int x = 0; x < Constants.ResizeImageWidth; x++)
                 {
-                    input[0, y, x] = pixelSpan[x].R / 255f; // Red channel
-                    input[1, y, x] = pixelSpan[x].G / 255f; // Green channel
-                    input[2, y, x] = pixelSpan[x].B / 255f; // Blue channel
+                    input[0, 0, y, x] = pixelSpan[x].R / 255f; // Red channel
+                    input[0, 1, y, x] = pixelSpan[x].G / 255f; // Green channel
+                    input[0, 2, y, x] = pixelSpan[x].B / 255f; // Blue channel
                 }
             }
         });
