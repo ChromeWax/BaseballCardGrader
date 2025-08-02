@@ -58,6 +58,6 @@ nunit-*.xml
 
 #Idea
 .idea
-/model/checkpoint
 .DS_Store
 .venv
+/BaseballCardGrader/src/Trainer/checkpoint
