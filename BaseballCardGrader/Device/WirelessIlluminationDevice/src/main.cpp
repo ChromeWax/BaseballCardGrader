@@ -31,7 +31,19 @@ const std::map<Command, int> commandToLedPin = {
 
 void setLedForCommand(Command command);
 
-class MyCallbacks: public BLECharacteristicCallbacks {
+// callbacks for connecting and disconnecting BLE clients
+class MyServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) override {
+    }
+    void onDisconnect(BLEServer* pServer) override {
+        // Restart advertising so clients can reconnect
+        BLEAdvertising *pAdvertising = pServer->getAdvertising();
+        pAdvertising->start();
+    }
+};
+
+// callbacks for handling commands
+class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic *pCharacteristic) {
       std::string value = pCharacteristic->getValue();
 
@@ -77,18 +89,15 @@ void setup() {
 
   BLEDevice::init("MyESP32");
   BLEServer *pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
 
   BLEService *pService = pServer->createService(SERVICE_UUID);
-
   BLECharacteristic *pCharacteristic = pService->createCharacteristic(
                                          CHARACTERISTIC_UUID,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_WRITE
                                        );
-
-  pCharacteristic->setCallbacks(new MyCallbacks());
-
-  pCharacteristic->setValue("Hello World");
+  pCharacteristic->setCallbacks(new MyCharacteristicCallbacks());
   pService->start();
 
   BLEAdvertising *pAdvertising = pServer->getAdvertising();
