@@ -28,5 +28,18 @@
     </array>
     <key>XSAppIconAssets</key>
     <string>Assets.xcassets/appicon.appiconset</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <!--for connecting to devices (client)-->
+        <string>bluetooth-central</string>
+    </array>
+
+    <!--Description of the Bluetooth request message (required on iOS 10, deprecated)-->
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>This app uses Bluetooth to connect to and communicate with an ESP32 device for grading baseball cards.</string>
+
+    <!--Description of the Bluetooth request message (required on iOS 13)-->
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>This app uses Bluetooth to connect to and communicate with an ESP32 device for grading baseball cards.</string>
 </dict>
 </plist>
