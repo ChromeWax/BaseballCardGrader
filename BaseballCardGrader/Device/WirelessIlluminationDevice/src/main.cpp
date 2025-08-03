@@ -13,8 +13,7 @@ enum Command {
   UP,
   DOWN,
   LEFT,
-  RIGHT,
-  OFF
+  RIGHT
 };
 
 // define led according to pin diagram in article
@@ -55,7 +54,6 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
         else if (value == "down") command = DOWN;
         else if (value == "left") command = LEFT;
         else if (value == "right") command = RIGHT;
-        else if (value == "off") command = OFF;
         else return;
 
         enableLedByCommandForOneSecond(command);
@@ -92,7 +90,7 @@ void setup() {
   pinMode(rightLedPin, OUTPUT);
 
   // turn off all LEDs initially
-  enableLedByCommandForOneSecond(Command::OFF);
+  setAllLedsOff();
 
   BLEDevice::init(DEVICE_NAME);
   BLEServer *pServer = BLEDevice::createServer();
