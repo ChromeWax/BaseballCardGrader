@@ -73,6 +73,8 @@ void setLedByCommand(Command command) {
   auto entry = commandToLedPin.find(command);
   if (entry != commandToLedPin.end()) {
     digitalWrite(entry->second, HIGH);
+    delay(1000); 
+    digitalWrite(entry->second, LOW);
   }
 }
 
