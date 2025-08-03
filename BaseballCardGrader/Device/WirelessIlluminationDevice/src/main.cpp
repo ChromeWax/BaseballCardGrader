@@ -5,6 +5,7 @@
 
 // See the following for generating UUIDs:
 // https://www.uuidgenerator.net/
+#define DEVICE_NAME         "Baseball Card Grader Device"
 #define SERVICE_UUID        "7123acc7-b24d-4eee-9c7f-ee6302637aef"
 #define CHARACTERISTIC_UUID "8be0f272-b3be-4351-a3fc-d57341aa628e"
 
@@ -87,7 +88,7 @@ void setup() {
   // turn off all LEDs initially
   setLedForCommand(Command::OFF);
 
-  BLEDevice::init("MyESP32");
+  BLEDevice::init(DEVICE_NAME);
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
