@@ -31,7 +31,7 @@ const std::map<Command, int> commandToLedPin = {
 };
 
 void setAllLedsOff();
-void setLedByCommand(Command command);
+void enableLedByCommandForOneSecond(Command command);
 
 // callbacks for connecting and disconnecting BLE clients
 class MyServerCallbacks: public BLEServerCallbacks {
@@ -58,7 +58,7 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
         else if (value == "off") command = OFF;
         else return;
 
-        setLedByCommand(command);
+        enableLedByCommandForOneSecond(command);
       }
     }
 };
@@ -70,7 +70,7 @@ void setAllLedsOff() {
   digitalWrite(rightLedPin, LOW);
 }
 
-void setLedByCommand(Command command) {
+void enableLedByCommandForOneSecond(Command command) {
   setAllLedsOff();
 
   // Set the selected LED HIGH if valid
@@ -92,7 +92,7 @@ void setup() {
   pinMode(rightLedPin, OUTPUT);
 
   // turn off all LEDs initially
-  setLedByCommand(Command::OFF);
+  enableLedByCommandForOneSecond(Command::OFF);
 
   BLEDevice::init(DEVICE_NAME);
   BLEServer *pServer = BLEDevice::createServer();
