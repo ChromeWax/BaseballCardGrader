@@ -63,4 +63,5 @@ nunit-*.xml
 /BaseballCardGrader/Trainer/checkpoint
 .pio
 .vscode
+.gitignore
 
