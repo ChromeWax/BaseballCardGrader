@@ -65,6 +65,7 @@
         <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.90" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="9.0.90" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.7" />
+        <PackageReference Include="Plugin.BLE" Version="3.1.0" />
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
     </ItemGroup>
 
