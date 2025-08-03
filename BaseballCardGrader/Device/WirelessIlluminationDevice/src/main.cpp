@@ -1,38 +1,100 @@
 #include <Arduino.h>
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
+
+// See the following for generating UUIDs:
+// https://www.uuidgenerator.net/
+#define SERVICE_UUID        "7123acc7-b24d-4eee-9c7f-ee6302637aef"
+#define CHARACTERISTIC_UUID "8be0f272-b3be-4351-a3fc-d57341aa628e"
+
+enum Command {
+  UP,
+  DOWN,
+  LEFT,
+  RIGHT,
+  OFF
+};
 
 // define led according to pin diagram in article
-const int upLed = D3;
-const int downLed = D4;
-const int leftLed = D5;
-const int rightLed = D6;
+const int upLedPin = D3;
+const int downLedPin = D4;
+const int leftLedPin = D5;
+const int rightLedPin = D6;
+
+const std::map<Command, int> commandToLedPin = {
+  { UP, upLedPin },
+  { DOWN, downLedPin },
+  { LEFT, leftLedPin },
+  { RIGHT, rightLedPin }
+};
+
+void setLedForCommand(Command command);
+
+class MyCallbacks: public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic *pCharacteristic) {
+      std::string value = pCharacteristic->getValue();
+
+      if (value.length() > 0) {
+        Command command;
+        if (value == "up") command = UP;
+        else if (value == "down") command = DOWN;
+        else if (value == "left") command = LEFT;
+        else if (value == "right") command = RIGHT;
+        else if (value == "off") command = OFF;
+        else return;
+
+        setLedForCommand(command);
+      }
+    }
+};
+
+void setLedForCommand(Command command) {
+  // Set all LEDs LOW
+  digitalWrite(upLedPin, LOW);
+  digitalWrite(downLedPin, LOW);
+  digitalWrite(leftLedPin, LOW);
+  digitalWrite(rightLedPin, LOW);
+
+  // Set the selected LED HIGH if valid
+  auto entry = commandToLedPin.find(command);
+  if (entry != commandToLedPin.end()) {
+    digitalWrite(entry->second, HIGH);
+  }
+}
 
 void setup() {
+  Serial.begin(115200);
+
   // initialize digital pin led as an output
-  pinMode(upLed, OUTPUT);
-  pinMode(downLed, OUTPUT);
-  pinMode(leftLed, OUTPUT);
-  pinMode(rightLed, OUTPUT);
+  pinMode(upLedPin, OUTPUT);
+  pinMode(downLedPin, OUTPUT);
+  pinMode(leftLedPin, OUTPUT);
+  pinMode(rightLedPin, OUTPUT);
+
+  // turn off all LEDs initially
+  setLedForCommand(Command::OFF);
+
+  BLEDevice::init("MyESP32");
+  BLEServer *pServer = BLEDevice::createServer();
+
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+
+  BLECharacteristic *pCharacteristic = pService->createCharacteristic(
+                                         CHARACTERISTIC_UUID,
+                                         BLECharacteristic::PROPERTY_READ |
+                                         BLECharacteristic::PROPERTY_WRITE
+                                       );
+
+  pCharacteristic->setCallbacks(new MyCallbacks());
+
+  pCharacteristic->setValue("Hello World");
+  pService->start();
+
+  BLEAdvertising *pAdvertising = pServer->getAdvertising();
+  pAdvertising->start();
 }
 
 void loop() {
-  digitalWrite(upLed, HIGH);   // turn the LED on 
-  digitalWrite(downLed, LOW);   // turn the LED on 
-  digitalWrite(leftLed, LOW);   // turn the LED on 
-  digitalWrite(rightLed, LOW);   // turn the LED on 
-  delay(100);               // wait for a second
-  digitalWrite(upLed, LOW);   // turn the LED on 
-  digitalWrite(downLed, HIGH);   // turn the LED on 
-  digitalWrite(leftLed, LOW);   // turn the LED on 
-  digitalWrite(rightLed, LOW);   // turn the LED on 
-  delay(100);               // wait for a second
-  digitalWrite(upLed, LOW);   // turn the LED on 
-  digitalWrite(downLed, LOW);   // turn the LED on 
-  digitalWrite(leftLed, HIGH);   // turn the LED on 
-  digitalWrite(rightLed, LOW);   // turn the LED on 
-  delay(100);               // wait for a second
-  digitalWrite(upLed, LOW);   // turn the LED on 
-  digitalWrite(downLed, LOW);   // turn the LED on 
-  digitalWrite(leftLed, LOW);   // turn the LED on 
-  digitalWrite(rightLed, HIGH);   // turn the LED on 
-  delay(100);               // wait for a second
+  delay(2000);
 }
