@@ -17,6 +17,7 @@ enum Command {
 };
 
 // define led according to pin diagram in article
+const int wakePin = D0;
 const int upLedPin = D3;
 const int downLedPin = D4;
 const int leftLedPin = D5;
@@ -29,17 +30,31 @@ const std::map<Command, int> commandToLedPin = {
   { RIGHT, rightLedPin }
 };
 
+const int sleepTime = 60000; // 1 minute sleep time
+
+// function declarations
 void setAllLedsOff();
 void enableLedByCommandForOneSecond(Command command);
+void goToSleep();
+void wakeUp();
+
+// global variables
+BLEServer *pServer = nullptr;
+BLEAdvertising *pAdvertising = nullptr;
+unsigned long lastActivityTime = 0;
+bool sleeping = false;
 
 // callbacks for connecting and disconnecting BLE clients
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) override {
+        lastActivityTime = millis();
     }
     void onDisconnect(BLEServer* pServer) override {
         // Restart advertising so clients can reconnect
-        BLEAdvertising *pAdvertising = pServer->getAdvertising();
-        pAdvertising->start();
+        if (!sleeping && pAdvertising) {
+            pAdvertising->start();
+        }
+        lastActivityTime = millis();
     }
 };
 
@@ -57,6 +72,7 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
         else return;
 
         enableLedByCommandForOneSecond(command);
+        lastActivityTime = millis();
       }
     }
 };
@@ -80,6 +96,19 @@ void enableLedByCommandForOneSecond(Command command) {
   }
 }
 
+void goToSleep() {
+  setAllLedsOff();
+  if (pAdvertising) pAdvertising->stop();
+  sleeping = true;
+}
+
+void wakeUp() {
+  setAllLedsOff();
+  if (pAdvertising) pAdvertising->start();
+  sleeping = false;
+  lastActivityTime = millis();
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -88,12 +117,13 @@ void setup() {
   pinMode(downLedPin, OUTPUT);
   pinMode(leftLedPin, OUTPUT);
   pinMode(rightLedPin, OUTPUT);
+  pinMode(wakePin, INPUT);
 
   // turn off all LEDs initially
   setAllLedsOff();
 
   BLEDevice::init(DEVICE_NAME);
-  BLEServer *pServer = BLEDevice::createServer();
+  pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
   BLEService *pService = pServer->createService(SERVICE_UUID);
@@ -105,10 +135,26 @@ void setup() {
   pCharacteristic->setCallbacks(new MyCharacteristicCallbacks());
   pService->start();
 
-  BLEAdvertising *pAdvertising = pServer->getAdvertising();
+  pAdvertising = pServer->getAdvertising();
   pAdvertising->start();
+
+  lastActivityTime = millis();
 }
 
 void loop() {
-  delay(2000);
+  if (!sleeping) {
+    // one minute timer till sleep
+    auto elapsedTime = millis() - lastActivityTime;
+    if (elapsedTime > sleepTime) {
+      goToSleep();
+    }
+  }
+  else {
+    // Wait for wake button interrupt
+    auto wakePinState = digitalRead(wakePin);
+    if (wakePinState == HIGH) {
+      wakeUp();
+    }
+  }
+  delay(100);
 }
