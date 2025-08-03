@@ -12,10 +12,16 @@ public class AnnotateImageForDefectsRequestHandler : IRequestHandler<AnnotateIma
     public Task<Image<Rgb24>> Handle(AnnotateImageForDefectsRequest request, CancellationToken cancellationToken)
     {
         // Read image
-        var image = Image.Load<Rgb24>(request.ImageFilePath);
+        var originalImage = Image.Load<Rgb24>(request.OriginalImageFilePath);
+        var processedImage = Image.Load<Rgb24>(request.ProcessedImageFilePath);
+        
+        // Gets original image dimensions
+        var originalImageWidth = originalImage.Width;
+        var originalImageHeight = originalImage.Height;
 
         // Resize image
-        image.Mutate(x => x.Resize(Constants.ResizeImageWidth, Constants.ResizeImageHeight));
+        originalImage.Mutate(x => x.Resize(Constants.ResizeImageWidth, Constants.ResizeImageHeight));
+        processedImage.Mutate(x => x.Resize(Constants.ResizeImageWidth, Constants.ResizeImageHeight));
 
         // Preprocess image
         Tensor<float> input = new DenseTensor<float>([
@@ -24,7 +30,7 @@ public class AnnotateImageForDefectsRequestHandler : IRequestHandler<AnnotateIma
             Constants.ResizeImageHeight, 
             Constants.ResizeImageWidth
         ]);
-        image.ProcessPixelRows(accessor =>
+        processedImage.ProcessPixelRows(accessor =>
         {
             for (var currentYPosition = 0; currentYPosition < Constants.ResizeImageHeight; currentYPosition++)
             {
@@ -70,15 +76,15 @@ public class AnnotateImageForDefectsRequestHandler : IRequestHandler<AnnotateIma
                 var y = i / Constants.ResizeImageWidth;
                 var x = i % Constants.ResizeImageWidth;
 
-                var pixel = image[x, y];
-                image[x, y] = new Rgb24(
-                    (byte)Math.Min(255, pixel.R + 100),
+                var pixel = originalImage[x, y];
+                originalImage[x, y] = new Rgb24(
+                    (byte)Math.Min(Constants.MaxIntensityPerChannel, pixel.R + Constants.MaskIntensity),
                     pixel.G,
                     pixel.B
                 );
             }
         }
 
-        return Task.FromResult(image);
+        return Task.FromResult(originalImage);
     }
 }

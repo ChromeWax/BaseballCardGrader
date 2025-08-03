@@ -4,4 +4,4 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace ImageProcessor.Features.AnnotateImageForDefects;
 
-public record AnnotateImageForDefectsRequest(string ModelFilePath, string ImageFilePath) : IRequest<Image<Rgb24>>;
+public record AnnotateImageForDefectsRequest(string ModelFilePath, string OriginalImageFilePath, string ProcessedImageFilePath) : IRequest<Image<Rgb24>>;

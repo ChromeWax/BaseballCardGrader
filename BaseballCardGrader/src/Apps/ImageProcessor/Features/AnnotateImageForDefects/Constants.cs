@@ -10,6 +10,7 @@ public static class Constants
     public const int ChannelGreen = 1;
     public const int ChannelBlue = 2;
     public const float MaxIntensityPerChannel = 255f;
+    public const int MaskIntensity = 100;
     public const int CurrentBatch = 0;
     public const int BatchSize = 1;
     public const float ScoreThreshold = 0.5f;
