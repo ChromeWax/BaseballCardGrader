@@ -31,6 +31,7 @@ const std::map<Command, int> commandToLedPin = {
 };
 
 const int sleepTime = 60000; // 1 minute sleep time
+const int oneMinuteDuration = 1000; // 1 second
 
 // function declarations
 void setAllLedsOff();
@@ -39,10 +40,8 @@ void goToSleep();
 void wakeUp();
 
 // global variables
-BLEServer *pServer = nullptr;
 BLEAdvertising *pAdvertising = nullptr;
 unsigned long lastActivityTime = 0;
-bool sleeping = false;
 
 // callbacks for connecting and disconnecting BLE clients
 class MyServerCallbacks: public BLEServerCallbacks {
@@ -51,7 +50,7 @@ class MyServerCallbacks: public BLEServerCallbacks {
     }
     void onDisconnect(BLEServer* pServer) override {
         // Restart advertising so clients can reconnect
-        if (!sleeping && pAdvertising) {
+        if (pAdvertising) {
             pAdvertising->start();
         }
         lastActivityTime = millis();
@@ -91,7 +90,7 @@ void enableLedByCommandForOneSecond(Command command) {
   auto entry = commandToLedPin.find(command);
   if (entry != commandToLedPin.end()) {
     digitalWrite(entry->second, HIGH);
-    delay(1000); 
+    delay(oneMinuteDuration); 
     digitalWrite(entry->second, LOW);
   }
 }
@@ -99,14 +98,8 @@ void enableLedByCommandForOneSecond(Command command) {
 void goToSleep() {
   setAllLedsOff();
   if (pAdvertising) pAdvertising->stop();
-  sleeping = true;
-}
-
-void wakeUp() {
-  setAllLedsOff();
-  if (pAdvertising) pAdvertising->start();
-  sleeping = false;
-  lastActivityTime = millis();
+  esp_deep_sleep_enable_gpio_wakeup(BIT(wakePin), ESP_GPIO_WAKEUP_GPIO_LOW);
+  esp_deep_sleep_start();
 }
 
 void setup() {
@@ -117,13 +110,12 @@ void setup() {
   pinMode(downLedPin, OUTPUT);
   pinMode(leftLedPin, OUTPUT);
   pinMode(rightLedPin, OUTPUT);
-  pinMode(wakePin, INPUT);
 
   // turn off all LEDs initially
   setAllLedsOff();
 
   BLEDevice::init(DEVICE_NAME);
-  pServer = BLEDevice::createServer();
+  BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
   BLEService *pService = pServer->createService(SERVICE_UUID);
@@ -142,19 +134,10 @@ void setup() {
 }
 
 void loop() {
-  if (!sleeping) {
-    // one minute timer till sleep
-    auto elapsedTime = millis() - lastActivityTime;
-    if (elapsedTime > sleepTime) {
-      goToSleep();
-    }
-  }
-  else {
-    // Wait for wake button interrupt
-    auto wakePinState = digitalRead(wakePin);
-    if (wakePinState == HIGH) {
-      wakeUp();
-    }
+  // one minute timer till sleep
+  auto elapsedTime = millis() - lastActivityTime;
+  if (elapsedTime > sleepTime) {
+    goToSleep();
   }
   delay(100);
 }
