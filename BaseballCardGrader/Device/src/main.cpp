@@ -30,8 +30,8 @@ const std::map<Command, int> commandToLedPin = {
   { RIGHT, rightLedPin }
 };
 
-const int sleepTime = 60000; // 1 minute sleep time
 const int oneMinuteDuration = 1000; // 1 second
+const int sleepTime = oneMinuteDuration * 60 * 3; // 3 minutes sleep time
 
 // function declarations
 void setAllLedsOff();
@@ -134,7 +134,6 @@ void setup() {
 }
 
 void loop() {
-  // one minute timer till sleep
   auto elapsedTime = millis() - lastActivityTime;
   if (elapsedTime > sleepTime) {
     goToSleep();
