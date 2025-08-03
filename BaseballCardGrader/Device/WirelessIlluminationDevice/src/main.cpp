@@ -30,6 +30,7 @@ const std::map<Command, int> commandToLedPin = {
   { RIGHT, rightLedPin }
 };
 
+void setAllLedsOff();
 void setLedByCommand(Command command);
 
 // callbacks for connecting and disconnecting BLE clients
@@ -62,12 +63,15 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
     }
 };
 
-void setLedByCommand(Command command) {
-  // Set all LEDs LOW
+void setAllLedsOff() {
   digitalWrite(upLedPin, LOW);
   digitalWrite(downLedPin, LOW);
   digitalWrite(leftLedPin, LOW);
   digitalWrite(rightLedPin, LOW);
+}
+
+void setLedByCommand(Command command) {
+  setAllLedsOff();
 
   // Set the selected LED HIGH if valid
   auto entry = commandToLedPin.find(command);
