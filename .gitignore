@@ -57,7 +57,11 @@ nunit-*.xml
 *.vs
 
 #Idea
+/BaseballCardGrader/Trainer/checkpoint
 .idea
 .DS_Store
 .venv
-/BaseballCardGrader/Trainer/checkpoint
+.pio
+.vscode
+.gitignore
+
