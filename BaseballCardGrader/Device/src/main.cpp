@@ -10,6 +10,7 @@
 #define CHARACTERISTIC_UUID "8be0f272-b3be-4351-a3fc-d57341aa628e"
 
 enum Command {
+  NONE,
   UP,
   DOWN,
   LEFT,
@@ -34,10 +35,10 @@ const int oneMinuteDuration = 1000; // 1 second
 const int sleepTime = oneMinuteDuration * 60 * 3; // 3 minutes sleep time
 
 // function declarations
+Command parseCommand(const std::string& value);
 void setAllLedsOff();
 void enableLedByCommandForOneSecond(Command command);
 void goToSleep();
-void wakeUp();
 
 // global variables
 BLEAdvertising *pAdvertising = nullptr;
@@ -63,18 +64,22 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
       std::string value = pCharacteristic->getValue();
 
       if (value.length() > 0) {
-        Command command;
-        if (value == "up") command = UP;
-        else if (value == "down") command = DOWN;
-        else if (value == "left") command = LEFT;
-        else if (value == "right") command = RIGHT;
-        else return;
+        Command command = parseCommand(value);
+        if (command == Command::NONE) return;
 
         enableLedByCommandForOneSecond(command);
         lastActivityTime = millis();
       }
     }
 };
+
+Command parseCommand(const std::string& value) {
+    if (value == "up") return Command::UP;
+    if (value == "down") return Command::DOWN;
+    if (value == "left") return Command::LEFT;
+    if (value == "right") return Command::RIGHT;
+    return Command::NONE;
+}
 
 void setAllLedsOff() {
   digitalWrite(upLedPin, LOW);
