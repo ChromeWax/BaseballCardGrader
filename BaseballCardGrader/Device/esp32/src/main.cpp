@@ -75,10 +75,10 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
 };
 
 Command parseCommand(const std::string& value) {
-    if (value == "up") return Command::UP;
-    if (value == "down") return Command::DOWN;
-    if (value == "left") return Command::LEFT;
-    if (value == "right") return Command::RIGHT;
+    if (value == "Up") return Command::UP;
+    if (value == "Down") return Command::DOWN;
+    if (value == "Left") return Command::LEFT;
+    if (value == "Right") return Command::RIGHT;
     return Command::NONE;
 }
 
