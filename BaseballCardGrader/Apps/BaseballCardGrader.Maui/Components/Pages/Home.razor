@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using System.Text
 @using Plugin.BLE
 @using Plugin.BLE.Abstractions
 @using Plugin.BLE.Abstractions.Contracts
@@ -17,11 +18,11 @@
     case ConnectionState.Connected:
         <p>Connected to ESP32!</p>
     
-        <button>Up</button>
-        <button>Left</button>
-        <button>Right</button>
-        <button>Left</button>
-        <button>Disconnect</button>
+        <button @onclick="@(() => SendCommandToEsp32(nameof(Esp32Command.Up)))">Up</button>
+        <button @onclick="@(() => SendCommandToEsp32(nameof(Esp32Command.Down)))">Down</button>
+        <button @onclick="@(() => SendCommandToEsp32(nameof(Esp32Command.Left)))">Left</button>
+        <button @onclick="@(() => SendCommandToEsp32(nameof(Esp32Command.Right)))">Right</button>
+        <button @onclick=DisconnectFromEsp32>Disconnect</button>
         break;
 }
 
@@ -31,20 +32,28 @@
 }
 
 @code {
-    private const string ServiceUuId = "7123acc7-b24d-4eee-9c7f-ee6302637aef";
+    private const string ServiceUuid = "7123acc7-b24d-4eee-9c7f-ee6302637aef";
+    private const string CharacteristicUuid = "8be0f272-b3be-4351-a3fc-d57341aa628e";
     private enum ConnectionState
     {
         Disconnected,
         Scanning,
         Connected
     }
-    
-    private ConnectionState _connectionState = ConnectionState.Disconnected;
-    private string? _errorMessage;
+    private enum Esp32Command
+    {
+        Up,
+        Down,
+        Left,
+        Right
+    }
     
     private IBluetoothLE ble;    
     private IAdapter adapter;
-
+    private IDevice? _connectedDevice;
+    private ConnectionState _connectionState = ConnectionState.Disconnected;
+    private string? _errorMessage;
+    
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -96,12 +105,12 @@
 
     private async Task ConnectToEsp32()
     {
-        // Checks permissions
         if (await CheckBluetoothPermissions()) return;
-
-        // Checks Bluetooth state
         if (CheckBluetoothState()) return;
 
+        _connectionState = ConnectionState.Scanning;
+        StateHasChanged();
+        
         adapter.DeviceDiscovered += async (s, a) =>
         {
             try
@@ -109,6 +118,7 @@
                 await adapter.ConnectToDeviceAsync(a.Device);
                 await adapter.StopScanningForDevicesAsync();
                 _connectionState = ConnectionState.Connected;
+                _connectedDevice = a.Device;
                 StateHasChanged();
             }
             catch(DeviceConnectionException e)
@@ -119,12 +129,10 @@
                 StateHasChanged();
             }
         };
-        
         var scanFilterOptions = new ScanFilterOptions
         {
-            ServiceUuids = [ new Guid(ServiceUuId) ]
+            ServiceUuids = [ new Guid(ServiceUuid) ]
         };
-        _connectionState = ConnectionState.Scanning;
         await adapter.StartScanningForDevicesAsync(scanFilterOptions);
 
         if (adapter.ConnectedDevices.Count == 0)
@@ -133,6 +141,39 @@
             _errorMessage = "No Esp32 found. Please ensure it is powered on and in range.";
             StateHasChanged();
         }
+    }
+    
+    private async Task SendCommandToEsp32(string command)
+    {
+        if (_connectedDevice is null) return;
+        
+        var service = await _connectedDevice.GetServiceAsync(new Guid(ServiceUuid));
+        if (service == null)
+        {
+            _errorMessage = "Service not found on the connected device.";
+            StateHasChanged();
+            return;
+        }
+
+        var characteristic = await service.GetCharacteristicAsync(new Guid(CharacteristicUuid));
+        if (characteristic == null)
+        {
+            _errorMessage = "Characteristic not found on the service.";
+            StateHasChanged();
+            return;
+        }
+
+        await characteristic.WriteAsync(Encoding.UTF8.GetBytes(command));
+    }
+    
+    private async Task DisconnectFromEsp32()
+    {
+        if (_connectedDevice is null) return;
+        
+        await adapter.DisconnectDeviceAsync(_connectedDevice);
+        _connectionState = ConnectionState.Disconnected;
+        _errorMessage = null;
+        StateHasChanged();
     }
 
 }
