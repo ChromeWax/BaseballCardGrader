@@ -1,5 +1,109 @@
 ﻿@page "/"
+@using Plugin.BLE
+@using Plugin.BLE.Abstractions
+@using Plugin.BLE.Abstractions.Contracts
 
-<h1>Hello, world!</h1>
+<h1>ESP32 Test</h1>
 
-Welcome to your new app.
+<button @onclick="ScanForDevices">Scan for Devices</button>
+
+@foreach (var device in deviceList)
+{
+    <p>@device.Name</p>
+}
+
+@if (ble is not null)
+{
+    <p>@ble.State</p>
+}
+
+@if (_errorMessage is not null)
+{ 
+    <p style="color: red;">@_errorMessage</p>  
+}
+
+@code {
+    private const string ServiceUuId = "7123acc7-b24d-4eee-9c7f-ee6302637aef";
+    
+    private bool _isScanning = false;
+    private string? _errorMessage;
+    
+    private IBluetoothLE ble;    
+    private IAdapter adapter;
+    private List<IDevice> deviceList = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        ble = CrossBluetoothLE.Current;
+        adapter = CrossBluetoothLE.Current.Adapter;
+        adapter.DeviceDiscovered += (s, a) =>
+        {
+            if (!deviceList.Contains(a.Device))
+            {
+                deviceList.Add(a.Device);
+                StateHasChanged();
+            }
+        };
+    }
+
+    private async Task<bool> CheckBluetoothPermissions()
+    {
+        PermissionStatus status = await Permissions.CheckStatusAsync<Permissions.Bluetooth>();
+        if (status != PermissionStatus.Granted)
+        {
+            status = await Permissions.RequestAsync<Permissions.Bluetooth>();
+            if (status == PermissionStatus.Denied)
+            {
+                _errorMessage = "Location permission is required to scan for Bluetooth devices. Please enable it in the app settings.";
+                return true;
+            }
+        }
+
+        return false;
+    }
+    
+    private bool CheckBluetoothState()
+    {
+        var bluetoothState = ble.State;
+        switch (bluetoothState)
+        {
+            case BluetoothState.Unknown:
+                _errorMessage = "Bluetooth state is unknown.";
+                StateHasChanged();
+                return true;
+            case BluetoothState.Unavailable:
+                _errorMessage = "Bluetooth is unavailable on this device.";
+                StateHasChanged();
+                return true;
+            case BluetoothState.Off:
+                _errorMessage = "Bluetooth is turned off. Please enable and try again..";
+                StateHasChanged();
+                return true;
+            default:
+                _errorMessage = null;
+                break;
+        }
+
+        return false;
+    }
+
+    private async Task ScanForDevices()
+    {
+        // Checks permissions
+        if (await CheckBluetoothPermissions()) return;
+
+        // Checks Bluetooth state
+        if (CheckBluetoothState()) return;
+
+        _isScanning = true;
+        deviceList.Clear();
+        var scanFilterOptions = new ScanFilterOptions
+        {
+            ServiceUuids = [ new Guid(ServiceUuId) ]
+        };
+        await adapter.StartScanningForDevicesAsync(scanFilterOptions);
+        _isScanning = false; 
+    }
+
+}
