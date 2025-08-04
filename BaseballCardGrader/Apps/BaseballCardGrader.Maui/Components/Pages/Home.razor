@@ -2,19 +2,27 @@
 @using Plugin.BLE
 @using Plugin.BLE.Abstractions
 @using Plugin.BLE.Abstractions.Contracts
+@using Plugin.BLE.Abstractions.Exceptions
 
 <h1>ESP32 Test</h1>
 
-<button @onclick="ScanForDevices">Scan for Devices</button>
-
-@foreach (var device in deviceList)
+@switch (_connectionState)
 {
-    <p>@device.Name</p>
-}
-
-@if (ble is not null)
-{
-    <p>@ble.State</p>
+    case ConnectionState.Disconnected:
+        <button @onclick="ConnectToEsp32">Connect to Esp32</button>
+        break;
+    case ConnectionState.Scanning:
+        <p>Scanning for Esp32...</p>
+        break;
+    case ConnectionState.Connected:
+        <p>Connected to ESP32!</p>
+    
+        <button>Up</button>
+        <button>Left</button>
+        <button>Right</button>
+        <button>Left</button>
+        <button>Disconnect</button>
+        break;
 }
 
 @if (_errorMessage is not null)
@@ -24,27 +32,24 @@
 
 @code {
     private const string ServiceUuId = "7123acc7-b24d-4eee-9c7f-ee6302637aef";
+    private enum ConnectionState
+    {
+        Disconnected,
+        Scanning,
+        Connected
+    }
     
-    private bool _isScanning = false;
+    private ConnectionState _connectionState = ConnectionState.Disconnected;
     private string? _errorMessage;
     
     private IBluetoothLE ble;    
     private IAdapter adapter;
-    private List<IDevice> deviceList = [];
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
         ble = CrossBluetoothLE.Current;
         adapter = CrossBluetoothLE.Current.Adapter;
-        adapter.DeviceDiscovered += (s, a) =>
-        {
-            if (!deviceList.Contains(a.Device))
-            {
-                deviceList.Add(a.Device);
-                StateHasChanged();
-            }
-        };
     }
 
     private async Task<bool> CheckBluetoothPermissions()
@@ -56,6 +61,7 @@
             if (status == PermissionStatus.Denied)
             {
                 _errorMessage = "Location permission is required to scan for Bluetooth devices. Please enable it in the app settings.";
+                StateHasChanged();
                 return true;
             }
         }
@@ -77,7 +83,7 @@
                 StateHasChanged();
                 return true;
             case BluetoothState.Off:
-                _errorMessage = "Bluetooth is turned off. Please enable and try again..";
+                _errorMessage = "Bluetooth is turned off. Please enable and try again.";
                 StateHasChanged();
                 return true;
             default:
@@ -88,7 +94,7 @@
         return false;
     }
 
-    private async Task ScanForDevices()
+    private async Task ConnectToEsp32()
     {
         // Checks permissions
         if (await CheckBluetoothPermissions()) return;
@@ -96,14 +102,37 @@
         // Checks Bluetooth state
         if (CheckBluetoothState()) return;
 
-        _isScanning = true;
-        deviceList.Clear();
+        adapter.DeviceDiscovered += async (s, a) =>
+        {
+            try
+            {
+                await adapter.ConnectToDeviceAsync(a.Device);
+                await adapter.StopScanningForDevicesAsync();
+                _connectionState = ConnectionState.Connected;
+                StateHasChanged();
+            }
+            catch(DeviceConnectionException e)
+            {
+                await adapter.StopScanningForDevicesAsync();
+                _connectionState = ConnectionState.Disconnected;
+                _errorMessage = "Esp32 was found but could not be connected.";
+                StateHasChanged();
+            }
+        };
+        
         var scanFilterOptions = new ScanFilterOptions
         {
             ServiceUuids = [ new Guid(ServiceUuId) ]
         };
+        _connectionState = ConnectionState.Scanning;
         await adapter.StartScanningForDevicesAsync(scanFilterOptions);
-        _isScanning = false; 
+
+        if (adapter.ConnectedDevices.Count == 0)
+        {
+            _connectionState = ConnectionState.Disconnected;
+            _errorMessage = "No Esp32 found. Please ensure it is powered on and in range.";
+            StateHasChanged();
+        }
     }
 
 }
