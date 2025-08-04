@@ -133,6 +133,7 @@ void setup() {
   pService->start();
 
   pAdvertising = pServer->getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->start();
 
   lastActivityTime = millis();
