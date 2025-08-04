@@ -31,8 +31,9 @@ const std::map<Command, int> commandToLedPin = {
   { RIGHT, rightLedPin }
 };
 
-const int oneMinuteDuration = 1000; // 1 second
-const int sleepTime = oneMinuteDuration * 60 * 3; // 3 minutes sleep time
+const int oneSecond = 1000;
+const int oneMinute = oneSecond * 60;
+const int sleepTime = oneMinute * 3;
 
 // function declarations
 Command parseCommand(const std::string& value);
@@ -95,7 +96,7 @@ void enableLedByCommandForOneSecond(Command command) {
   auto entry = commandToLedPin.find(command);
   if (entry != commandToLedPin.end()) {
     digitalWrite(entry->second, HIGH);
-    delay(oneMinuteDuration); 
+    delay(oneSecond); 
     digitalWrite(entry->second, LOW);
   }
 }
