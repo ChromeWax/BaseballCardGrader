@@ -1,5 +1,69 @@
 ﻿@page "/"
+@* @using CardGraderMAUI.Services *@
+@* @inject CameraService cameraService *@
+@inject NavigationManager Navigation
 
-<h1>Hello, world!</h1>
+<h1 class="text-center mt-5 display-4">📇 AI Card Grader</h1>
 
-Welcome to your new app.
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <h4 class="mb-4">Get Started</h4>
+
+            <div class="d-grid gap-4">
+
+                <div class="card option-card shadow-lg" role="button">
+                     @* @onclick="@(() => NavigateToCapture())"> *@
+                    <div class="card-body">
+                        <h5 class="card-title fs-3 mb-2">📷 Capture 4 Card Images</h5>
+                        <p class="card-text text-muted">Use your camera to take photos of your cards.</p>
+                    </div>
+                </div>
+
+                <div class="card option-card shadow-lg" role="button">
+                     @* @onclick="@(() => NavigateToOverlay())"> *@
+                    <div class="card-body">
+                        <h5 class="card-title fs-3 mb-2">📁 Upload 4 Card Images</h5>
+                        <p class="card-text text-muted">Select existing images from your device.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-8">
+            <div class="card shadow p-4">
+                <h3 class="text-primary">About AI Card Grader</h3>
+                <p>
+                    <strong>AI Card Grader</strong> is a machine learning-powered application designed to evaluate the condition of collectible cards—such as sports cards, Pokémon cards, and trading cards—by analyzing images for surface damage, edge wear, centering issues, and other defects.
+                </p>
+                <p>
+                    Grading cards manually is time-consuming and subjective. Our AI offers a faster, more objective alternative. Whether you're a collector looking for a quick pre-grade estimate or a dealer processing high volumes, this tool provides a consistent, automated solution.
+                </p>
+                <p>
+                    Upload or capture card images through this app, and the AI will analyze them, highlight imperfections, and generate a condition score—perfect for modern collectors and sellers.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .option-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border-radius: 1rem;
+        cursor: pointer;
+        background: linear-gradient(to right, #f8f9fa, #ffffff);
+    }
+
+    .option-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .option-card .card-body {
+        padding: 2rem;
+    }
+</style>
