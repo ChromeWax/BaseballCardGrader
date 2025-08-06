@@ -54,7 +54,8 @@ public class Program
         var sender = provider.GetRequiredService<ISender>();
         
         await sender.Send(new ConvertImageToOverlayRequest(top, bottom, right, left, processedImageFilePath));
-
+        
+        
         var result = await sender.Send(new AnnotateImageForDefectsRequest(modelFilePath, top, processedImageFilePath));
         await result.SaveAsPngAsync(outputImagePath);
     }
