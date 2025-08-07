@@ -11,16 +11,15 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        if (args.Length != 4)
+        if (args.Length != 3)
         {
-            System.Console.WriteLine("Usage: BaseballCardGrader.Console.exe <input model file> <original image files dir> <processed image file> <output image path>");
+            System.Console.WriteLine("Usage: BaseballCardGrader.Console.exe <input model file> <original image files dir> <output image path>");
             return;
         }
         
         var modelFilePath = args[0];
         var originalImageDirFilePath = args[1];
-        var processedImageFilePath = args[2];
-        var outputImagePath = args[3];
+        var outputImagePath = args[2];
         
         if (!Directory.Exists(originalImageDirFilePath))
         {
@@ -53,10 +52,9 @@ public class Program
 
         var sender = provider.GetRequiredService<ISender>();
         
-        await sender.Send(new ConvertImageToOverlayRequest(top, bottom, right, left, processedImageFilePath));
+        var overlayImage = await sender.Send(new ConvertImageToOverlayRequest(top, bottom, right, left));
         
-        
-        var result = await sender.Send(new AnnotateImageForDefectsRequest(modelFilePath, top, processedImageFilePath));
+        var result = await sender.Send(new AnnotateImageForDefectsRequest(modelFilePath, top, overlayImage));
         await result.SaveAsPngAsync(outputImagePath);
     }
 }

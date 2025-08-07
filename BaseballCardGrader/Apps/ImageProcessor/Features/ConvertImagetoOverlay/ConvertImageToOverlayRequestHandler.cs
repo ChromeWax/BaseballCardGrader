@@ -1,49 +1,63 @@
-﻿using Mediator;
-using OpenCvSharp;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Globalization;
+using Mediator;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Processing;
 
 namespace ImageProcessor.Features.ConvertImageToOverlay;
 
-public class ConvertImageToOverlayRequestHandler : IRequestHandler<ConvertImageToOverlayRequest, string>
+public class ConvertImageToOverlayRequestHandler : IRequestHandler<ConvertImageToOverlayRequest, Image<Rgb24>>
 {
-    public Task<string> Handle(ConvertImageToOverlayRequest request, CancellationToken cancellationToken)
+    public Task<Image<Rgb24>> Handle(ConvertImageToOverlayRequest request, CancellationToken cancellationToken)
     {
         // Load images from file paths in grayscale
-        var topGray = Cv2.ImRead(request.originalTopImagePath, ImreadModes.Grayscale);
-        var bottomGray = Cv2.ImRead(request.originalBottomImagePath, ImreadModes.Grayscale);
-        var leftGray = Cv2.ImRead(request.originalLeftImagePath, ImreadModes.Grayscale);
-        var rightGray = Cv2.ImRead(request.originalRightImagePath, ImreadModes.Grayscale);
+        var topGray = Image.Load<L8>(request.originalTopImagePath);
+        var bottomGray = Image.Load<L8>(request.originalBottomImagePath);
+        var leftGray = Image.Load<L8>(request.originalLeftImagePath);
+        var rightGray = Image.Load<L8>(request.originalRightImagePath);
 
         // Validate dimensions
-        int width = topGray.Width;
-        int height = topGray.Height;
+        var width = topGray.Width;
+        var height = topGray.Height;
 
         if (bottomGray.Width != width || bottomGray.Height != height ||
             leftGray.Width != width || leftGray.Height != height ||
             rightGray.Width != width || rightGray.Height != height)
-        {
             throw new ArgumentException("All input images must have the same dimensions.");
+        
+// Create the two color images
+        var aboveLeft = CreateColorImage(leftGray, topGray, height, width);
+        var bottomRight = CreateColorImage(rightGray, bottomGray, height, width);
+
+// Blend them together 50/50
+        aboveLeft.Mutate(ctx => ctx.DrawImage(bottomRight, 0.5f));
+        // aboveLeft.Save("C:\\Users\\ricky\\Desktop\\BaseballCardGrader\\BaseballCardGrader\\test\\overlay_imagesharp.png");
+        return Task.FromResult(aboveLeft);
+    }
+    
+    // Convert grayscale to color with specified channel assignments
+    private Image<Rgb24> CreateColorImage(Image<L8> redChannel, Image<L8> greenChannel, int height, int width)
+    {
+        var colorImage = new Image<Rgb24>(width, height);
+
+        // For ImageSharp 2.x+
+        for (int y = 0; y < height; y++)
+        {
+            var rRow = redChannel.DangerousGetPixelRowMemory(y).Span;
+            var gRow = greenChannel.DangerousGetPixelRowMemory(y).Span;
+            var colorRow = colorImage.DangerousGetPixelRowMemory(y).Span;
+
+            for (int x = 0; x < width; x++)
+            {
+                colorRow[x] = new Rgb24(
+                    rRow[x].PackedValue,
+                    gRow[x].PackedValue,
+                    0
+                );
+            }
         }
 
-        // Create a blue channel (all zeros)
-        var blue = new Mat(height, width, MatType.CV_8UC1, Scalar.All(0));
-
-        // Create colored versions of grayscale inputs
-        var aboveLeft = new Mat();
-        Cv2.Merge(new[] { blue, topGray, leftGray }, aboveLeft);  // Blue, Green, Red
-
-        var bottomRight = new Mat();
-        Cv2.Merge(new[] { blue, bottomGray, rightGray }, bottomRight);  // Blue, Green, Red
-
-        // Blend the two colored images
-        var blended = new Mat();
-        Cv2.AddWeighted(aboveLeft, 0.5, bottomRight, 0.5, 0, blended);
-
-        // Save the result as PNG
-        Cv2.ImWrite(request.outputFilePath, blended);
-
-        // Return the saved file path
-        return Task.FromResult(request.outputFilePath);
+        return colorImage;
     }
 }
