@@ -1,6 +1,7 @@
 using ImageProcessor.DependencyInjection;
 using ImageProcessor.Features.AnnotateImageForDefects;
 using ImageProcessor.Features.ConvertImageToOverlay;
+using ImageProcessor.Features.ConvertImageToNormalMap;
 using Mediator;
 using Microsoft.Extensions.DependencyInjection;
 using SixLabors.ImageSharp;
@@ -11,15 +12,16 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        if (args.Length != 3)
+        if (args.Length != 4)
         {
-            System.Console.WriteLine("Usage: BaseballCardGrader.Console.exe <input model file> <original image files dir> <output image path>");
+            System.Console.WriteLine("Usage: BaseballCardGrader.Console.exe <input model file> <original image files dir> <model output image path> <normal map image path>");
             return;
         }
         
         var modelFilePath = args[0];
         var originalImageDirFilePath = args[1];
-        var outputImagePath = args[2];
+        var modelOutputImagePath = args[2];
+        var normalMapImagePath = args[3];
         
         if (!Directory.Exists(originalImageDirFilePath))
         {
@@ -52,9 +54,13 @@ public class Program
 
         var sender = provider.GetRequiredService<ISender>();
         
+        //Get masks on original Image
         var overlayImage = await sender.Send(new ConvertImageToOverlayRequest(top, bottom, right, left));
+        var modelOutput = await sender.Send(new AnnotateImageForDefectsRequest(modelFilePath, top, overlayImage));
+        await modelOutput.SaveAsPngAsync(modelOutputImagePath);
         
-        var result = await sender.Send(new AnnotateImageForDefectsRequest(modelFilePath, top, overlayImage));
-        await result.SaveAsPngAsync(outputImagePath);
+        //Get a normal map image
+        var normalMapImage = await sender.Send(new ConvertImageToNormalMapRequest(top, bottom, right, left));
+        await normalMapImage.SaveAsPngAsync(normalMapImagePath);
     }
 }
