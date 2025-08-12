@@ -243,7 +243,7 @@
 
     private void NavigateToCapture()
     {
-        NavigationManager.NavigateTo("/Capture");
+        App.Current.MainPage.Navigation.PushAsync(new CaptureImagePage());
     }
 
     private void NavigateToUpload()
@@ -252,45 +252,3 @@
     }
 
 }
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Upload button click handler
-        document.getElementById('uploadBtn').addEventListener('click', function () {
-            this.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                this.style.transform = '';
-            }, 150);
-
-            // Your upload logic goes here
-            console.log('Upload button clicked');
-            // Example: window.location.href = '/Upload';
-        });
-
-        // Capture button click handler
-        document.getElementById('captureBtn').addEventListener('click', function () {
-            this.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                this.style.transform = '';
-            }, 150);
-
-            // Your capture logic goes here
-            console.log('Capture button clicked');
-            // Example: window.location.href = '/Capture';
-        });
-
-        // Process button click handler
-        document.getElementById('processBtn').addEventListener('click', function () {
-            // Your process logic goes here
-            console.log('Process button clicked');
-        });
-    });
-
-    // Helper function to show preview (call this from your backend)
-    function showPreview(imageSrc, message) {
-        document.getElementById('statusMessage').textContent = message;
-        document.getElementById('statusMessage').classList.add('show');
-        document.getElementById('previewImage').src = imageSrc;
-        document.getElementById('previewSection').classList.add('show');
-    }
-</script>

@@ -4,14 +4,14 @@
 @using Plugin.BLE.Abstractions
 @using Plugin.BLE.Abstractions.Contracts
 @using Plugin.BLE.Abstractions.Exceptions
-
+ 
 <h1>ESP32 Test</h1>
-<button @onclick="@(() => Navigation.NavigateTo("/CaptureAndUpload"))">Go to Capture</button>
+<button class="btn btn-primary" @onclick="@(() => Navigation.NavigateTo("/CaptureAndUpload"))">Go to Capture</button>
 
 @switch (_connectionState)
 {
     case ConnectionState.Disconnected:
-        <button @onclick="ConnectToEsp32">Connect to Esp32</button>
+        <button class="btn btn-primary" @onclick="ConnectToEsp32">Connect to Esp32</button>
         break;
     case ConnectionState.Scanning:
         <p>Scanning for Esp32...</p>
