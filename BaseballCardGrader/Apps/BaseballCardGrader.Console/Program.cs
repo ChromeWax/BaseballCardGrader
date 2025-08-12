@@ -61,6 +61,6 @@ public class Program
         
         //Get a normal map image
         var normalMapImage = await sender.Send(new ConvertImageToNormalMapRequest(top, bottom, right, left));
-        await normalMapImage.SaveAsPngAsync(normalMapImagePath);
+        // await normalMapImage.SaveAsPngAsync(normalMapImagePath);
     }
 }
