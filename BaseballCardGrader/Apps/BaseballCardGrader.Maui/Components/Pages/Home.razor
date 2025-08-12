@@ -79,6 +79,8 @@
         ble = CrossBluetoothLE.Current;
         adapter = CrossBluetoothLE.Current.Adapter;
 
+        adapter.DeviceDiscovered += OnDeviceDiscovered;
+
         // TO DO - REMOVE
         OnEsp32CommandSent += async (temp) => {
             if (temp == NotificationType.LedOn)
@@ -138,48 +140,7 @@
 
         _connectionState = ConnectionState.Scanning;
         StateHasChanged();
-        
-        adapter.DeviceDiscovered += async (s, a) =>
-        {
-            try
-            {
-                await adapter.ConnectToDeviceAsync(a.Device);
-                await adapter.StopScanningForDevicesAsync();
-                _connectedDevice = a.Device;
-                
-                _connectedDeviceService = await _connectedDevice.GetServiceAsync(new Guid(ServiceUuid));
-                if (_connectedDeviceService == null)
-                {
-                    _errorMessage = "Service not found on the connected device.";
-                    StateHasChanged();
-                    return;
-                }
 
-                _connectedDeviceCharacteristic = await _connectedDeviceService.GetCharacteristicAsync(new Guid(CharacteristicUuid));
-                if (_connectedDeviceCharacteristic == null)
-                {
-                    _errorMessage = "Characteristic not found on the service.";
-                    StateHasChanged();
-                    return;
-                }
-                
-                if (_connectedDeviceCharacteristic.CanUpdate)
-                {
-                    _connectedDeviceCharacteristic.ValueUpdated += OnCharacteristicValueChanged;
-                    await _connectedDeviceCharacteristic.StartUpdatesAsync();
-                }
-                
-                _connectionState = ConnectionState.Connected;
-                StateHasChanged();
-            }
-            catch(DeviceConnectionException e)
-            {
-                await adapter.StopScanningForDevicesAsync();
-                _connectionState = ConnectionState.Disconnected;
-                _errorMessage = "Esp32 was found but could not be connected.";
-                StateHasChanged();
-            }
-        };
         var scanFilterOptions = new ScanFilterOptions
         {
             ServiceUuids = [ new Guid(ServiceUuid) ]
@@ -190,6 +151,48 @@
         {
             _connectionState = ConnectionState.Disconnected;
             _errorMessage = "No Esp32 found. Please ensure it is powered on and in range.";
+            StateHasChanged();
+        }
+    }
+
+    private async void OnDeviceDiscovered(object? sender, DeviceEventArgs a)
+    {
+        try
+        {
+            await adapter.ConnectToDeviceAsync(a.Device);
+            await adapter.StopScanningForDevicesAsync();
+            _connectedDevice = a.Device;
+
+            _connectedDeviceService = await _connectedDevice.GetServiceAsync(new Guid(ServiceUuid));
+            if (_connectedDeviceService == null)
+            {
+                _errorMessage = "Service not found on the connected device.";
+                StateHasChanged();
+                return;
+            }
+
+            _connectedDeviceCharacteristic = await _connectedDeviceService.GetCharacteristicAsync(new Guid(CharacteristicUuid));
+            if (_connectedDeviceCharacteristic == null)
+            {
+                _errorMessage = "Characteristic not found on the service.";
+                StateHasChanged();
+                return;
+            }
+
+            if (_connectedDeviceCharacteristic.CanUpdate)
+            {
+                _connectedDeviceCharacteristic.ValueUpdated += OnCharacteristicValueChanged;
+                await _connectedDeviceCharacteristic.StartUpdatesAsync();
+            }
+
+            _connectionState = ConnectionState.Connected;
+            StateHasChanged();
+        }
+        catch (DeviceConnectionException)
+        {
+            await adapter.StopScanningForDevicesAsync();
+            _connectionState = ConnectionState.Disconnected;
+            _errorMessage = "Esp32 was found but could not be connected.";
             StateHasChanged();
         }
     }
@@ -212,9 +215,23 @@
         }
         
         await adapter.DisconnectDeviceAsync(_connectedDevice);
+
+        _connectedDevice = null;
+        _connectedDeviceService = null;
+        _connectedDeviceCharacteristic = null;
+
         _connectionState = ConnectionState.Disconnected;
         _errorMessage = null;
         StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        if (adapter != null)
+            adapter.DeviceDiscovered -= OnDeviceDiscovered;
+
+        if (_connectedDeviceCharacteristic != null)
+            _connectedDeviceCharacteristic.ValueUpdated -= OnCharacteristicValueChanged;
     }
 
     private void OnCharacteristicValueChanged(object sender, CharacteristicUpdatedEventArgs e)
