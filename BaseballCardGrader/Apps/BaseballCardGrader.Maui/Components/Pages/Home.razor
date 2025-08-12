@@ -3,10 +3,14 @@
 @using Plugin.BLE
 @using Plugin.BLE.Abstractions
 @using Plugin.BLE.Abstractions.Contracts
+@using Plugin.BLE.Abstractions.EventArgs
 @using Plugin.BLE.Abstractions.Exceptions
 
 <h1>ESP32 Test</h1>
 <button @onclick="@(() => Navigation.NavigateTo("/CaptureAndUpload"))">Go to Capture</button>
+
+@*TO DO - REMOVE*@
+<p>Notifications received: @_notificationCount</p>
 
 @switch (_connectionState)
 {
@@ -35,6 +39,10 @@
 @code {
     [Inject] private NavigationManager Navigation { get; set; }
     
+    public event Action? OnEsp32CommandSent;
+    // TO DO - REMOVE
+    private int _notificationCount = 0;
+    
     private const string ServiceUuid = "7123acc7-b24d-4eee-9c7f-ee6302637aef";
     private const string CharacteristicUuid = "8be0f272-b3be-4351-a3fc-d57341aa628e";
     private enum ConnectionState
@@ -54,6 +62,8 @@
     private IBluetoothLE ble;    
     private IAdapter adapter;
     private IDevice? _connectedDevice;
+    private IService? _connectedDeviceService;
+    private ICharacteristic? _connectedDeviceCharacteristic;
     private ConnectionState _connectionState = ConnectionState.Disconnected;
     private string? _errorMessage;
     
@@ -62,6 +72,12 @@
         await base.OnInitializedAsync();
         ble = CrossBluetoothLE.Current;
         adapter = CrossBluetoothLE.Current.Adapter;
+
+        // TO DO - REMOVE
+        OnEsp32CommandSent += () => {
+            _notificationCount++;
+            InvokeAsync(StateHasChanged);
+        };
     }
 
     private async Task<bool> CheckBluetoothPermissions()
@@ -120,8 +136,31 @@
             {
                 await adapter.ConnectToDeviceAsync(a.Device);
                 await adapter.StopScanningForDevicesAsync();
-                _connectionState = ConnectionState.Connected;
                 _connectedDevice = a.Device;
+                
+                _connectedDeviceService = await _connectedDevice.GetServiceAsync(new Guid(ServiceUuid));
+                if (_connectedDeviceService == null)
+                {
+                    _errorMessage = "Service not found on the connected device.";
+                    StateHasChanged();
+                    return;
+                }
+
+                _connectedDeviceCharacteristic = await _connectedDeviceService.GetCharacteristicAsync(new Guid(CharacteristicUuid));
+                if (_connectedDeviceCharacteristic == null)
+                {
+                    _errorMessage = "Characteristic not found on the service.";
+                    StateHasChanged();
+                    return;
+                }
+                
+                if (_connectedDeviceCharacteristic.CanUpdate)
+                {
+                    _connectedDeviceCharacteristic.ValueUpdated += OnCharacteristicValueChanged;
+                    await _connectedDeviceCharacteristic.StartUpdatesAsync();
+                }
+                
+                _connectionState = ConnectionState.Connected;
                 StateHasChanged();
             }
             catch(DeviceConnectionException e)
@@ -148,30 +187,20 @@
     
     private async Task SendCommandToEsp32(string command)
     {
-        if (_connectedDevice is null) return;
+        if (_connectedDeviceCharacteristic is null) return;
         
-        var service = await _connectedDevice.GetServiceAsync(new Guid(ServiceUuid));
-        if (service == null)
-        {
-            _errorMessage = "Service not found on the connected device.";
-            StateHasChanged();
-            return;
-        }
-
-        var characteristic = await service.GetCharacteristicAsync(new Guid(CharacteristicUuid));
-        if (characteristic == null)
-        {
-            _errorMessage = "Characteristic not found on the service.";
-            StateHasChanged();
-            return;
-        }
-
-        await characteristic.WriteAsync(Encoding.UTF8.GetBytes(command));
+        await _connectedDeviceCharacteristic.WriteAsync(Encoding.UTF8.GetBytes(command));
     }
     
     private async Task DisconnectFromEsp32()
     {
         if (_connectedDevice is null) return;
+        
+        if (_connectedDeviceCharacteristic is not null)
+        {
+            _connectedDeviceCharacteristic.ValueUpdated -= OnCharacteristicValueChanged;
+            await _connectedDeviceCharacteristic.StopUpdatesAsync();
+        }
         
         await adapter.DisconnectDeviceAsync(_connectedDevice);
         _connectionState = ConnectionState.Disconnected;
@@ -179,4 +208,8 @@
         StateHasChanged();
     }
 
+    private void OnCharacteristicValueChanged(object sender, CharacteristicUpdatedEventArgs e)
+    {
+        OnEsp32CommandSent?.Invoke();
+    }
 }
