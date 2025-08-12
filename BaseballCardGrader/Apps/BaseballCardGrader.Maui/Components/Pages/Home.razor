@@ -39,7 +39,13 @@
 @code {
     [Inject] private NavigationManager Navigation { get; set; }
     
-    public event Action? OnEsp32CommandSent;
+    public event Action<NotificationType>? OnEsp32CommandSent;
+    public enum NotificationType
+    {
+        LedOn,
+        LedOff
+    }
+    
     // TO DO - REMOVE
     private int _notificationCount = 0;
     
@@ -74,9 +80,12 @@
         adapter = CrossBluetoothLE.Current.Adapter;
 
         // TO DO - REMOVE
-        OnEsp32CommandSent += () => {
-            _notificationCount++;
-            InvokeAsync(StateHasChanged);
+        OnEsp32CommandSent += async (temp) => {
+            if (temp == NotificationType.LedOn)
+                _notificationCount += 1;
+            else
+                _notificationCount -= 1;
+            await InvokeAsync(StateHasChanged);
         };
     }
 
@@ -210,6 +219,8 @@
 
     private void OnCharacteristicValueChanged(object sender, CharacteristicUpdatedEventArgs e)
     {
-        OnEsp32CommandSent?.Invoke();
+        var value = Encoding.UTF8.GetString(e.Characteristic.Value);
+        if (Enum.TryParse(value, out NotificationType notificationType))
+            OnEsp32CommandSent?.Invoke(notificationType);
     }
 }
