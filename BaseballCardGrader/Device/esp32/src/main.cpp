@@ -160,6 +160,10 @@ void loop() {
         digitalWrite(entry->second, LOW);
       }
       activeLedCommand = Command::NONE;
+      if (pCharacteristic) {
+        pCharacteristic->setValue("LedOff");
+        pCharacteristic->notify();
+      }
     }
   }
 
