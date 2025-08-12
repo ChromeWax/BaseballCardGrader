@@ -12,8 +12,8 @@ public class AnnotateImageForDefectsRequestHandler : IRequestHandler<AnnotateIma
     public Task<Image<Rgb24>> Handle(AnnotateImageForDefectsRequest request, CancellationToken cancellationToken)
     {
         // Read image
-        var originalImage = Image.Load<Rgb24>(request.OriginalImageFilePath);
-        var processedImage = Image.Load<Rgb24>(request.ProcessedImageFilePath);
+        var originalImage = request.OriginalImage;
+        var overlayImage = request.OverlayImage;
         
         // Gets original image dimensions
         var originalImageWidth = originalImage.Width;
@@ -21,7 +21,7 @@ public class AnnotateImageForDefectsRequestHandler : IRequestHandler<AnnotateIma
 
         // Resize image
         originalImage.Mutate(x => x.Resize(Constants.ResizeImageWidth, Constants.ResizeImageHeight));
-        processedImage.Mutate(x => x.Resize(Constants.ResizeImageWidth, Constants.ResizeImageHeight));
+        overlayImage.Mutate(x => x.Resize(Constants.ResizeImageWidth, Constants.ResizeImageHeight));
 
         // Preprocess image
         Tensor<float> input = new DenseTensor<float>([
@@ -30,7 +30,7 @@ public class AnnotateImageForDefectsRequestHandler : IRequestHandler<AnnotateIma
             Constants.ResizeImageHeight, 
             Constants.ResizeImageWidth
         ]);
-        processedImage.ProcessPixelRows(accessor =>
+        overlayImage.ProcessPixelRows(accessor =>
         {
             for (var currentYPosition = 0; currentYPosition < Constants.ResizeImageHeight; currentYPosition++)
             {
