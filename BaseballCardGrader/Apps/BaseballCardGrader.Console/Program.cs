@@ -5,6 +5,7 @@ using ImageProcessor.Features.ConvertImageToNormalMap;
 using Mediator;
 using Microsoft.Extensions.DependencyInjection;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace BaseballCardGrader.Console;
 
@@ -47,6 +48,13 @@ public class Program
             return;
         }
         
+        var topImage = Image.Load<L8>(top);
+        var bottomImage = Image.Load<L8>(bottom);
+        var leftImage = Image.Load<L8>(left);
+        var rightImage = Image.Load<L8>(right);
+
+        var originalImageRgb = Image.Load<Rgb24>(top);
+        
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddImageProcessor();
 
@@ -55,12 +63,12 @@ public class Program
         var sender = provider.GetRequiredService<ISender>();
         
         //Get masks on original Image
-        var overlayImage = await sender.Send(new ConvertImageToOverlayRequest(top, bottom, right, left));
-        var modelOutput = await sender.Send(new AnnotateImageForDefectsRequest(modelFilePath, top, overlayImage));
+        var overlayImage = await sender.Send(new ConvertImageToOverlayRequest(topImage, bottomImage, rightImage, leftImage));
+        var modelOutput = await sender.Send(new AnnotateImageForDefectsRequest(modelFilePath, originalImageRgb, overlayImage));
         await modelOutput.SaveAsPngAsync(modelOutputImagePath);
         
         //Get a normal map image
-        var normalMapImage = await sender.Send(new ConvertImageToNormalMapRequest(top, bottom, right, left));
+        var normalMapImage = await sender.Send(new ConvertImageToNormalMapRequest(topImage, bottomImage, rightImage, leftImage));
         // await normalMapImage.SaveAsPngAsync(normalMapImagePath);
     }
 }

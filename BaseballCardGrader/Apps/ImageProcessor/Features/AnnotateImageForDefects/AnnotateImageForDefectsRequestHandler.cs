@@ -12,7 +12,7 @@ public class AnnotateImageForDefectsRequestHandler : IRequestHandler<AnnotateIma
     public Task<Image<Rgb24>> Handle(AnnotateImageForDefectsRequest request, CancellationToken cancellationToken)
     {
         // Read image
-        var originalImage = Image.Load<Rgb24>(request.OriginalImageFilePath);
+        var originalImage = request.OriginalImage;
         var overlayImage = request.OverlayImage;
         
         // Gets original image dimensions

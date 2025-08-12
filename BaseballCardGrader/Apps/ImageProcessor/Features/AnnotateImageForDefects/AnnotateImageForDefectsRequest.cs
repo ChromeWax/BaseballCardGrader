@@ -4,4 +4,4 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace ImageProcessor.Features.AnnotateImageForDefects;
 
-public record AnnotateImageForDefectsRequest(string ModelFilePath, string OriginalImageFilePath, Image<Rgb24> OverlayImage) : IRequest<Image<Rgb24>>;
+public record AnnotateImageForDefectsRequest(string ModelFilePath, Image<Rgb24> OriginalImage, Image<Rgb24> OverlayImage) : IRequest<Image<Rgb24>>;

@@ -11,10 +11,10 @@ public class ConvertImageToNormalMapRequestHandler : IRequestHandler<ConvertImag
     // TODO: Need to fix Normal Map logic
     public Task<Image<Rgb24>> Handle(ConvertImageToNormalMapRequest request, CancellationToken cancellationToken)
     {
-        using var topImage = Image.Load<L8>(request.originalTopImagePath);
-        using var bottomImage = Image.Load<L8>(request.originalBottomImagePath);
-        using var rightImage = Image.Load<L8>(request.originalRightImagePath);
-        using var leftImage = Image.Load<L8>(request.originalLeftImagePath);
+        using var topImage = request.originalTopImage;
+        using var bottomImage = request.originalBottomImage;
+        using var rightImage = request.originalRightImage;
+        using var leftImage = request.originalLeftImage;
 
         int width = topImage.Width;
         int height = topImage.Height;

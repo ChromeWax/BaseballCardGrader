@@ -5,4 +5,4 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace ImageProcessor.Features.ConvertImageToNormalMap;
 
 public record ConvertImageToNormalMapRequest(
-    string originalTopImagePath, string originalBottomImagePath, string originalRightImagePath, string originalLeftImagePath) : IRequest<Image<Rgb24>>;
+    Image<L8> originalTopImage, Image<L8> originalBottomImage, Image<L8> originalRightImage, Image<L8> originalLeftImage) : IRequest<Image<Rgb24>>;

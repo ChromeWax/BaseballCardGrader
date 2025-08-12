@@ -12,10 +12,10 @@ public class ConvertImageToOverlayRequestHandler : IRequestHandler<ConvertImageT
     public Task<Image<Rgb24>> Handle(ConvertImageToOverlayRequest request, CancellationToken cancellationToken)
     {
         // Load images from file paths in grayscale
-        var topGray = Image.Load<L8>(request.originalTopImagePath);
-        var bottomGray = Image.Load<L8>(request.originalBottomImagePath);
-        var leftGray = Image.Load<L8>(request.originalLeftImagePath);
-        var rightGray = Image.Load<L8>(request.originalRightImagePath);
+        var topGray = request.originalTopImage;
+        var bottomGray = request.originalBottomImage;
+        var leftGray = request.originalLeftImage;
+        var rightGray = request.originalRightImage;
 
         // Validate dimensions
         var width = topGray.Width;
