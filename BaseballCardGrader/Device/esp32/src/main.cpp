@@ -31,8 +31,9 @@ const std::map<Command, int> commandToLedPin = {
   { RIGHT, rightLedPin }
 };
 
-const int oneMinuteDuration = 1000; // 1 second
-const int sleepTime = oneMinuteDuration * 60 * 3; // 3 minutes sleep time
+const int oneSecond = 1000;
+const int oneMinute = oneSecond * 60;
+const int sleepTime = oneMinute * 3;
 
 // function declarations
 Command parseCommand(const std::string& value);
@@ -74,10 +75,10 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
 };
 
 Command parseCommand(const std::string& value) {
-    if (value == "up") return Command::UP;
-    if (value == "down") return Command::DOWN;
-    if (value == "left") return Command::LEFT;
-    if (value == "right") return Command::RIGHT;
+    if (value == "Up") return Command::UP;
+    if (value == "Down") return Command::DOWN;
+    if (value == "Left") return Command::LEFT;
+    if (value == "Right") return Command::RIGHT;
     return Command::NONE;
 }
 
@@ -95,7 +96,7 @@ void enableLedByCommandForOneSecond(Command command) {
   auto entry = commandToLedPin.find(command);
   if (entry != commandToLedPin.end()) {
     digitalWrite(entry->second, HIGH);
-    delay(oneMinuteDuration); 
+    delay(oneSecond); 
     digitalWrite(entry->second, LOW);
   }
 }
@@ -133,6 +134,7 @@ void setup() {
   pService->start();
 
   pAdvertising = pServer->getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->start();
 
   lastActivityTime = millis();
