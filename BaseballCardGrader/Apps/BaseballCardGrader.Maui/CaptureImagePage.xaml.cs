@@ -100,8 +100,6 @@ public partial class CaptureImagePage : ContentPage
                 _appState.GrayscaleLeftImage = results[2];
                 _appState.GrayscaleRightImage = results[3];
                 
-                Console.WriteLine("Finished converting all Images to GrayscaleImages");
-                
                 CaptureCompleted();
             }
         }

@@ -11,16 +11,29 @@
 
 <h3>EvaluateImages</h3>
 
+@if (!string.IsNullOrEmpty(originalImageBase64))
+{
+    <div>
+        <h4>Original Image</h4>
+        <img src="data:image/jpeg;base64,@originalImageBase64" alt="Original Image" style="max-width:400px;" />
+    </div>
+}
+
 @if (!string.IsNullOrEmpty(evaluatedImageBase64))
 {
-    <img src="data:image/png;base64,@evaluatedImageBase64" alt="Evaluated Image" />
+    <div>
+        <h4>Evaluated Image</h4>
+        <img src="data:image/png;base64,@evaluatedImageBase64" alt="Evaluated Image" style="max-width:400px;" />
+    </div>
 }
 else
 {
-    <p>No image to display.</p>
+    <p>No evaluated image to display.</p>
 }
 
+
 @code {
+    private string? originalImageBase64;
     private string? evaluatedImageBase64;
     
     protected override async Task OnInitializedAsync()
@@ -30,16 +43,51 @@ else
     
     public async Task EvaluateImage()
     {
+        // Show the original JPEG immediately
+        if (ApplicationState.jpegTopImage != null && ApplicationState.jpegTopImage.Length > 0)
+        {
+            originalImageBase64 = Convert.ToBase64String(ApplicationState.jpegTopImage);
+        }
         
         var originalRgbImage = await Task.Run(() =>
             ImageConversionService.ConvertJpegBytesToRgbImage(ApplicationState.jpegTopImage)
         );
         
-        var overlayImage = await Sender.Send(new ConvertImageToOverlayRequest(ApplicationState.GrayscaleTopImage, ApplicationState.GrayscaleBottomImage, ApplicationState.GrayscaleRightImage, ApplicationState.GrayscaleLeftImage));
-        var modelOutput = await Sender.Send(new AnnotateImageForDefectsRequest("BaseballCardGrader.Maui/Resources/Raw/BaseballCardGraderModel.onnx", originalRgbImage, overlayImage));
+        // Run the overlay + model inference on a background thread
+        var modelOutput = await Task.Run(async () =>
+        {
+            var overlayImage = await Sender.Send(
+                new ConvertImageToOverlayRequest(
+                    ApplicationState.GrayscaleTopImage,
+                    ApplicationState.GrayscaleBottomImage,
+                    ApplicationState.GrayscaleRightImage,
+                    ApplicationState.GrayscaleLeftImage
+                )
+            );
+            
+            var tempModelFile = Path.Combine(FileSystem.CacheDirectory, "BaseballCardGraderModel.onnx");
+
+            if (!File.Exists(tempModelFile))
+            {
+                using var assetStream = await FileSystem.OpenAppPackageFileAsync("BaseballCardGraderModel.onnx");
+                using var fileStream = File.Create(tempModelFile);
+                await assetStream.CopyToAsync(fileStream);
+            }
+
+            var output = await Sender.Send(
+                new AnnotateImageForDefectsRequest(
+                    tempModelFile,
+                    originalRgbImage,
+                    overlayImage
+                )
+            );
+
+            return output; // This is Image<Rgb24>
+        });
+        
         // await modelOutput.SaveAsPngAsync("BaseballCardGrader.Maui/Resources/Images/ModelOutput.png");
         
         // Convert Image<Rgb24> to base64 string
-        evaluatedImageBase64 = await ImageConversionService.ConvertRgbImageToBase64(modelOutput);
+        evaluatedImageBase64 = await Task.Run(() => ImageConversionService.ConvertRgbImageToBase64(modelOutput));
     }
 }
