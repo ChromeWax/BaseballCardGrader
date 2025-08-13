@@ -1,243 +1,63 @@
 ﻿@page "/"
-@using System.Text
-@using Plugin.BLE
-@using Plugin.BLE.Abstractions
-@using Plugin.BLE.Abstractions.Contracts
-@using Plugin.BLE.Abstractions.EventArgs
-@using Plugin.BLE.Abstractions.Exceptions
+@using BaseballCardGrader.Maui.Services
+@inject Esp32BluetoothService Esp32Service
+@inject NavigationManager Navigation
 
 <h1>ESP32 Test</h1>
 <button @onclick="@(() => Navigation.NavigateTo("/CaptureAndUpload"))">Go to Capture</button>
 
-@*TO DO - REMOVE*@
 <p>Notifications received: @_notificationCount</p>
 
 @switch (_connectionState)
 {
-    case ConnectionState.Disconnected:
-        <button @onclick="ConnectToEsp32">Connect to Esp32</button>
+    case Esp32BluetoothService.ConnectionState.Disconnected:
+                <button @onclick="ConnectToEsp32">Connect to Esp32</button>
         break;
-    case ConnectionState.Scanning:
-        <p>Scanning for Esp32...</p>
+    case Esp32BluetoothService.ConnectionState.Scanning:
+                <p>Scanning for Esp32...</p>
         break;
-    case ConnectionState.Connected:
-        <p>Connected to ESP32!</p>
-    
-        <button @onclick="@(() => SendCommandToEsp32(nameof(Esp32Command.Up)))">Up</button>
-        <button @onclick="@(() => SendCommandToEsp32(nameof(Esp32Command.Down)))">Down</button>
-        <button @onclick="@(() => SendCommandToEsp32(nameof(Esp32Command.Left)))">Left</button>
-        <button @onclick="@(() => SendCommandToEsp32(nameof(Esp32Command.Right)))">Right</button>
-        <button @onclick=DisconnectFromEsp32>Disconnect</button>
+    case Esp32BluetoothService.ConnectionState.Connected:
+                <p>Connected to ESP32!</p>
+                <button @onclick="@(() => SendCommand(nameof(Esp32BluetoothService.NotificationType.LedOn)))">Up</button>
+                <button @onclick="@(() => SendCommand(nameof(Esp32BluetoothService.NotificationType.LedOff)))">Down</button>
+                <button @onclick=DisconnectFromEsp32>Disconnect</button>
         break;
 }
 
-@if (_errorMessage is not null)
-{ 
-    <p style="color: red;">@_errorMessage</p>  
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+        <p style="color:red;">@_errorMessage</p>
 }
 
 @code {
-    [Inject] private NavigationManager Navigation { get; set; }
-    
-    public event Action<NotificationType>? OnEsp32CommandSent;
-    public enum NotificationType
-    {
-        LedOn,
-        LedOff
-    }
-    
-    // TO DO - REMOVE
-    private int _notificationCount = 0;
-    
-    private const string ServiceUuid = "7123acc7-b24d-4eee-9c7f-ee6302637aef";
-    private const string CharacteristicUuid = "8be0f272-b3be-4351-a3fc-d57341aa628e";
-    private enum ConnectionState
-    {
-        Disconnected,
-        Scanning,
-        Connected
-    }
-    private enum Esp32Command
-    {
-        Up,
-        Down,
-        Left,
-        Right
-    }
-    
-    private IBluetoothLE ble;    
-    private IAdapter adapter;
-    private IDevice? _connectedDevice;
-    private IService? _connectedDeviceService;
-    private ICharacteristic? _connectedDeviceCharacteristic;
-    private ConnectionState _connectionState = ConnectionState.Disconnected;
+    private int _notificationCount;
+    private Esp32BluetoothService.ConnectionState _connectionState = Esp32BluetoothService.ConnectionState.Disconnected;
     private string? _errorMessage;
-    
-    protected override async Task OnInitializedAsync()
+
+    protected override void OnInitialized()
     {
-        await base.OnInitializedAsync();
-        ble = CrossBluetoothLE.Current;
-        adapter = CrossBluetoothLE.Current.Adapter;
+        Esp32Service.OnConnectionStateChanged += state =>
+        {
+            _connectionState = state;
+            InvokeAsync(StateHasChanged);
+        };
 
-        adapter.DeviceDiscovered += OnDeviceDiscovered;
+        Esp32Service.OnError += msg =>
+        {
+            _errorMessage = msg;
+            InvokeAsync(StateHasChanged);
+        };
 
-        // TO DO - REMOVE
-        OnEsp32CommandSent += async (temp) => {
-            if (temp == NotificationType.LedOn)
-                _notificationCount += 1;
-            else
-                _notificationCount -= 1;
-            await InvokeAsync(StateHasChanged);
+        Esp32Service.OnNotification += type =>
+        {
+            _notificationCount += (type == Esp32BluetoothService.NotificationType.LedOn) ? 1 : -1;
+            InvokeAsync(StateHasChanged);
         };
     }
 
-    private async Task<bool> CheckBluetoothPermissions()
-    {
-        PermissionStatus status = await Permissions.CheckStatusAsync<Permissions.Bluetooth>();
-        if (status != PermissionStatus.Granted)
-        {
-            status = await Permissions.RequestAsync<Permissions.Bluetooth>();
-            if (status == PermissionStatus.Denied)
-            {
-                _errorMessage = "Location permission is required to scan for Bluetooth devices. Please enable it in the app settings.";
-                StateHasChanged();
-                return true;
-            }
-        }
+    private async Task ConnectToEsp32() => await Esp32Service.ConnectAsync();
+    private async Task SendCommand(string cmd) => await Esp32Service.SendCommandAsync(cmd);
+    private async Task DisconnectFromEsp32() => await Esp32Service.DisconnectAsync();
 
-        return false;
-    }
-    
-    private bool CheckBluetoothState()
-    {
-        var bluetoothState = ble.State;
-        switch (bluetoothState)
-        {
-            case BluetoothState.Unknown:
-                _errorMessage = "Bluetooth state is unknown.";
-                StateHasChanged();
-                return true;
-            case BluetoothState.Unavailable:
-                _errorMessage = "Bluetooth is unavailable on this device.";
-                StateHasChanged();
-                return true;
-            case BluetoothState.Off:
-                _errorMessage = "Bluetooth is turned off. Please enable and try again.";
-                StateHasChanged();
-                return true;
-            default:
-                _errorMessage = null;
-                break;
-        }
-
-        return false;
-    }
-
-    private async Task ConnectToEsp32()
-    {
-        if (await CheckBluetoothPermissions()) return;
-        if (CheckBluetoothState()) return;
-
-        _connectionState = ConnectionState.Scanning;
-        StateHasChanged();
-
-        var scanFilterOptions = new ScanFilterOptions
-        {
-            ServiceUuids = [ new Guid(ServiceUuid) ]
-        };
-        await adapter.StartScanningForDevicesAsync(scanFilterOptions);
-
-        if (adapter.ConnectedDevices.Count == 0)
-        {
-            _connectionState = ConnectionState.Disconnected;
-            _errorMessage = "No Esp32 found. Please ensure it is powered on and in range.";
-            StateHasChanged();
-        }
-    }
-
-    private async void OnDeviceDiscovered(object? sender, DeviceEventArgs a)
-    {
-        try
-        {
-            await adapter.ConnectToDeviceAsync(a.Device);
-            await adapter.StopScanningForDevicesAsync();
-            _connectedDevice = a.Device;
-
-            _connectedDeviceService = await _connectedDevice.GetServiceAsync(new Guid(ServiceUuid));
-            if (_connectedDeviceService == null)
-            {
-                _errorMessage = "Service not found on the connected device.";
-                StateHasChanged();
-                return;
-            }
-
-            _connectedDeviceCharacteristic = await _connectedDeviceService.GetCharacteristicAsync(new Guid(CharacteristicUuid));
-            if (_connectedDeviceCharacteristic == null)
-            {
-                _errorMessage = "Characteristic not found on the service.";
-                StateHasChanged();
-                return;
-            }
-
-            if (_connectedDeviceCharacteristic.CanUpdate)
-            {
-                _connectedDeviceCharacteristic.ValueUpdated += OnCharacteristicValueChanged;
-                await _connectedDeviceCharacteristic.StartUpdatesAsync();
-            }
-
-            _connectionState = ConnectionState.Connected;
-            StateHasChanged();
-        }
-        catch (DeviceConnectionException)
-        {
-            await adapter.StopScanningForDevicesAsync();
-            _connectionState = ConnectionState.Disconnected;
-            _errorMessage = "Esp32 was found but could not be connected.";
-            StateHasChanged();
-        }
-    }
-    
-    private async Task SendCommandToEsp32(string command)
-    {
-        if (_connectedDeviceCharacteristic is null) return;
-        
-        await _connectedDeviceCharacteristic.WriteAsync(Encoding.UTF8.GetBytes(command));
-    }
-    
-    private async Task DisconnectFromEsp32()
-    {
-        if (_connectedDevice is null) return;
-        
-        if (_connectedDeviceCharacteristic is not null)
-        {
-            _connectedDeviceCharacteristic.ValueUpdated -= OnCharacteristicValueChanged;
-            await _connectedDeviceCharacteristic.StopUpdatesAsync();
-        }
-        
-        await adapter.DisconnectDeviceAsync(_connectedDevice);
-
-        _connectedDevice = null;
-        _connectedDeviceService = null;
-        _connectedDeviceCharacteristic = null;
-
-        _connectionState = ConnectionState.Disconnected;
-        _errorMessage = null;
-        StateHasChanged();
-    }
-
-    public void Dispose()
-    {
-        if (adapter != null)
-            adapter.DeviceDiscovered -= OnDeviceDiscovered;
-
-        if (_connectedDeviceCharacteristic != null)
-            _connectedDeviceCharacteristic.ValueUpdated -= OnCharacteristicValueChanged;
-    }
-
-    private void OnCharacteristicValueChanged(object sender, CharacteristicUpdatedEventArgs e)
-    {
-        var value = Encoding.UTF8.GetString(e.Characteristic.Value);
-        if (Enum.TryParse(value, out NotificationType notificationType))
-            OnEsp32CommandSent?.Invoke(notificationType);
-    }
+    public void Dispose() => Esp32Service.Dispose();
 }
