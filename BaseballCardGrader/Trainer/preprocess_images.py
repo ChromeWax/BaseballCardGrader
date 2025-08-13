@@ -121,13 +121,13 @@ if __name__ == "__main__":
 
     if len(args) < 3:
         print("Usage:")
-        print("  Batch Mode:  python imageProcessor.py -batch <batchDir> <resultsDir> <normalMap | overlay> <defectName>")
-        print("  Single Mode: python imageProcessor.py <imageDir> <resultsDir> <normalMap | overlay>")
+        print("  Batch Mode:  python preprocess_images.py -batch <batchDir> <resultsDir> <normalMap | overlay> <defectName>")
+        print("  Single Mode: python preprocess_images.py <imageDir> <resultsDir> <normalMap | overlay>")
         sys.exit(1)
 
     if args[0] == "-batch":
         if len(args) != 5:
-            print("Usage: python NormalMapGenerator.py -batch <batchDir> <resultsDir> <normalMap | overlay> <defectName>")
+            print("Usage: python preprocess_images.py -batch <batchDir> <resultsDir> <normalMap | overlay> <defectName>")
             sys.exit(1)
         batchDir = args[1]
         resultsDir = args[2]
