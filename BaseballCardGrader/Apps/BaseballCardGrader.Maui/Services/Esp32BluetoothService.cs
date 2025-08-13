@@ -35,6 +35,14 @@ namespace BaseballCardGrader.Maui.Services
             LedOff
         }
 
+        public enum Esp32Command
+        {
+            Up,
+            Down,
+            Left,
+            Right
+        }
+
         public Esp32BluetoothService()
         {
             ble = CrossBluetoothLE.Current;
@@ -142,7 +150,7 @@ namespace BaseballCardGrader.Maui.Services
                 OnNotification?.Invoke(note);
         }
 
-        public async Task SendCommandAsync(string command)
+        public async Task SendCommandToEsp32(string command)
         {
             if (connectedCharacteristic == null) return;
             await connectedCharacteristic.WriteAsync(Encoding.UTF8.GetBytes(command));
