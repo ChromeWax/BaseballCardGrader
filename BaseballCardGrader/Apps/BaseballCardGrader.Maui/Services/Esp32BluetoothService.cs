@@ -3,11 +3,7 @@ using Plugin.BLE.Abstractions.EventArgs;
 using Plugin.BLE.Abstractions.Exceptions;
 using Plugin.BLE.Abstractions;
 using Plugin.BLE;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace BaseballCardGrader.Maui.Services
 {
