@@ -1,17 +1,28 @@
-﻿using SixLabors.ImageSharp;
+﻿using BaseballCardGrader.Maui.Services;
+using BaseballCardGrader.Maui.State;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace BaseballCardGrader.Maui;
 
 public partial class CaptureImagePage : ContentPage
 {
+    private readonly ApplicationState _appState;
+    private readonly Action? _onCaptureCompleted;
+    private readonly IImageConversionService _imageConversionService;
+
     // Holds the original JPEG bytes in memory
     private List<byte[]> capturedJpegs = new();
 
     // Holds ImageSources for UI preview
     private List<ImageSource> capturedImages = new();
 
-    public CaptureImagePage()
+    public CaptureImagePage(ApplicationState appState, IImageConversionService imageConversionService, Action? onCaptureCompleted)
     {
         InitializeComponent();
+        _appState = appState;
+        _imageConversionService = imageConversionService;
+        _onCaptureCompleted = onCaptureCompleted;
     }
 
     private bool isTakingPhotos = false;
@@ -44,7 +55,6 @@ public partial class CaptureImagePage : ContentPage
                     using var ms = new MemoryStream();
                     await photoStream.CopyToAsync(ms);
                     var jpegBytes = ms.ToArray();
-
                     capturedJpegs.Add(jpegBytes);
 
                     var imageSource = ImageSource.FromStream(() => new MemoryStream(jpegBytes));
@@ -67,6 +77,33 @@ public partial class CaptureImagePage : ContentPage
 
                 await Task.Delay(500);
             }
+            
+            // Now populate ApplicationState properties from capturedJpegs
+            if (capturedJpegs.Count == 4)
+            {
+                _appState.jpegTopImage = capturedJpegs[0];
+                _appState.jpegBottomImage = capturedJpegs[1];
+                _appState.jpegLeftImage = capturedJpegs[2];
+                _appState.jpegRightImage = capturedJpegs[3];
+                
+                var tasks = new Task<Image<L8>>[]
+                {
+                    Task.Run(() => _imageConversionService.ConvertJpegBytesToGrayscaleImage(_appState.jpegTopImage)),
+                    Task.Run(() => _imageConversionService.ConvertJpegBytesToGrayscaleImage(_appState.jpegBottomImage)),
+                    Task.Run(() => _imageConversionService.ConvertJpegBytesToGrayscaleImage(_appState.jpegLeftImage)),
+                    Task.Run(() => _imageConversionService.ConvertJpegBytesToGrayscaleImage(_appState.jpegRightImage))
+                };
+
+                var results = await Task.WhenAll(tasks);
+                _appState.GrayscaleTopImage = results[0];
+                _appState.GrayscaleBottomImage = results[1];
+                _appState.GrayscaleLeftImage = results[2];
+                _appState.GrayscaleRightImage = results[3];
+                
+                Console.WriteLine("Finished converting all Images to GrayscaleImages");
+                
+                CaptureCompleted();
+            }
         }
         finally
         {
@@ -74,6 +111,14 @@ public partial class CaptureImagePage : ContentPage
             ((Button)sender).IsEnabled = true; // Re-enable button after done
         }
     }
+
+    private async void CaptureCompleted()
+    {
+        _onCaptureCompleted?.Invoke();
+        // Navigate back
+        await Navigation.PopAsync();
+    }
+    
     private async void ShowFullImage(ImageSource imageSource)
     {
         var fullImagePage = new ContentPage
@@ -98,15 +143,4 @@ public partial class CaptureImagePage : ContentPage
         await Navigation.PushModalAsync(fullImagePage);
     }
 
-    private async void OnEvaluateClicked(object sender, EventArgs e)
-    {
-        var evaluatedImage = await evaluationView.getEvaluatedImage(capturedJpegs);
-
-        using var ms = new MemoryStream();
-        await evaluatedImage.SaveAsPngAsync(ms); // You could also use SaveAsJpegAsync
-        ms.Position = 0;
-
-        evaluationView.SetEvaluationImage(ImageSource.FromStream(() => new MemoryStream(ms.ToArray())));
-        evaluationView.IsVisible = true;
-    }
 }

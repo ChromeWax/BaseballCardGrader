@@ -1,5 +1,9 @@
 ﻿@page "/CaptureAndUpload"
+@using BaseballCardGrader.Maui.Services
+@using BaseballCardGrader.Maui.State
 @inject NavigationManager NavigationManager;
+@inject ApplicationState ApplicationState;
+@inject IImageConversionService ImageConversionService;
 
 <div class="image-upload-container">
     <div class="header-section">
@@ -243,7 +247,7 @@
 
     private void NavigateToCapture()
     {
-        App.Current.MainPage.Navigation.PushAsync(new CaptureImagePage());
+        App.Current.MainPage.Navigation.PushAsync(new CaptureImagePage(ApplicationState, ImageConversionService, () => NavigationManager.NavigateTo("/EvaluateImages")));
     }
 
     private void NavigateToUpload()

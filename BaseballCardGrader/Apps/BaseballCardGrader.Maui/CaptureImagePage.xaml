@@ -15,6 +15,13 @@
             Grid.Row="0"
             HorizontalOptions="FillAndExpand"
             VerticalOptions="FillAndExpand" />
+        
+        <Slider 
+            Grid.Column="0"
+            Grid.Row="1"
+            Value="{Binding CurrentZoom}"
+            Maximum="{Binding SelectedCamera.MaximumZoomFactor, FallbackValue=1}"
+            Minimum="{Binding SelectedCamera.MinimumZoomFactor, FallbackValue=1}"/>
 
         <!-- Controls (30% height) -->
         <VerticalStackLayout Grid.Row="1" Spacing="10">
@@ -29,15 +36,6 @@
             <ScrollView Orientation="Horizontal" HeightRequest="100">
                 <HorizontalStackLayout x:Name="imagePreviewStack" Spacing="10"/>
             </ScrollView>
-            
-            <Button Text="Evaluate"
-                    Clicked="OnEvaluateClicked"
-                    BackgroundColor="DodgerBlue"
-                    TextColor="White" />
-            
-            <!-- Evaluation ContentView, initially hidden -->
-            <maui:EvaluationView x:Name="evaluationView" IsVisible="False" />
-
         </VerticalStackLayout>
 
     </Grid>

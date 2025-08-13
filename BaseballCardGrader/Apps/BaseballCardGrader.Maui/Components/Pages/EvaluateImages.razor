@@ -1,0 +1,45 @@
+﻿@page "/EvaluateImages"
+@using BaseballCardGrader.Maui.Services
+@using BaseballCardGrader.Maui.State
+@using ImageProcessor.Features.AnnotateImageForDefects
+@using ImageProcessor.Features.ConvertImageToOverlay
+@using Mediator
+
+@inject ISender Sender
+@inject ApplicationState ApplicationState
+@inject IImageConversionService ImageConversionService
+
+<h3>EvaluateImages</h3>
+
+@if (!string.IsNullOrEmpty(evaluatedImageBase64))
+{
+    <img src="data:image/png;base64,@evaluatedImageBase64" alt="Evaluated Image" />
+}
+else
+{
+    <p>No image to display.</p>
+}
+
+@code {
+    private string? evaluatedImageBase64;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await EvaluateImage();
+    }
+    
+    public async Task EvaluateImage()
+    {
+        
+        var originalRgbImage = await Task.Run(() =>
+            ImageConversionService.ConvertJpegBytesToRgbImage(ApplicationState.jpegTopImage)
+        );
+        
+        var overlayImage = await Sender.Send(new ConvertImageToOverlayRequest(ApplicationState.GrayscaleTopImage, ApplicationState.GrayscaleBottomImage, ApplicationState.GrayscaleRightImage, ApplicationState.GrayscaleLeftImage));
+        var modelOutput = await Sender.Send(new AnnotateImageForDefectsRequest("BaseballCardGrader.Maui/Resources/Raw/BaseballCardGraderModel.onnx", originalRgbImage, overlayImage));
+        // await modelOutput.SaveAsPngAsync("BaseballCardGrader.Maui/Resources/Images/ModelOutput.png");
+        
+        // Convert Image<Rgb24> to base64 string
+        evaluatedImageBase64 = await ImageConversionService.ConvertRgbImageToBase64(modelOutput);
+    }
+}
