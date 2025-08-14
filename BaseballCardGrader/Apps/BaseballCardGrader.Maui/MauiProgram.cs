@@ -18,15 +18,13 @@ namespace BaseballCardGrader.Maui
 
             builder.Services.AddMauiBlazorWebView();
 
-            builder.Services.AddSingleton<Esp32BluetoothService>();
-
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
 
-
-            
     		builder.Logging.AddDebug();
 #endif
+            
+            builder.Services.AddSingleton<Esp32BluetoothService>();
 
             return builder.Build();
         }

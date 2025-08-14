@@ -13,11 +13,12 @@ namespace BaseballCardGrader.Maui.Services
         public event Action<string>? OnError;
         public event Action<NotificationType>? OnNotification;
 
-        private IBluetoothLE ble;
-        private IAdapter adapter;
-        private IDevice? connectedDevice;
-        private IService? connectedService;
-        private ICharacteristic? connectedCharacteristic;
+        private readonly IBluetoothLE _ble;
+        private readonly IAdapter _adapter;
+        
+        private IDevice? _connectedDevice;
+        private IService? _connectedService;
+        private ICharacteristic? _connectedCharacteristic;
 
         private const string ServiceUuid = "7123acc7-b24d-4eee-9c7f-ee6302637aef";
         private const string CharacteristicUuid = "8be0f272-b3be-4351-a3fc-d57341aa628e";
@@ -45,12 +46,12 @@ namespace BaseballCardGrader.Maui.Services
 
         public Esp32BluetoothService()
         {
-            ble = CrossBluetoothLE.Current;
-            adapter = CrossBluetoothLE.Current.Adapter;
-            adapter.DeviceDiscovered += OnDeviceDiscovered;
+            _ble = CrossBluetoothLE.Current;
+            _adapter = CrossBluetoothLE.Current.Adapter;
+            _adapter.DeviceDiscovered += OnDeviceDiscovered;
         }
 
-        public async Task<bool> EnsurePermissionsAsync()
+        private async Task<bool> EnsurePermissionsAsync()
         {
             var status = await Permissions.CheckStatusAsync<Permissions.Bluetooth>();
             if (status != PermissionStatus.Granted)
@@ -65,9 +66,9 @@ namespace BaseballCardGrader.Maui.Services
             return true;
         }
 
-        public bool EnsureBluetoothOn()
+        private bool EnsureBluetoothOn()
         {
-            switch (ble.State)
+            switch (_ble.State)
             {
                 case BluetoothState.Unknown:
                     OnError?.Invoke("Bluetooth state unknown.");
@@ -79,7 +80,7 @@ namespace BaseballCardGrader.Maui.Services
                     OnError?.Invoke("Bluetooth is off. Please enable it.");
                     return false;
                 default:
-                    OnError?.Invoke(null);
+                    OnError?.Invoke(string.Empty);
                     return true;
             }
         }
@@ -96,9 +97,9 @@ namespace BaseballCardGrader.Maui.Services
                 ServiceUuids = [new Guid(ServiceUuid)]
             };
 
-            await adapter.StartScanningForDevicesAsync(filter);
+            await _adapter.StartScanningForDevicesAsync(filter);
 
-            if (adapter.ConnectedDevices.Count == 0)
+            if (_adapter.ConnectedDevices.Count == 0)
             {
                 OnConnectionStateChanged?.Invoke(ConnectionState.Disconnected);
                 OnError?.Invoke("No Esp32 found. Make sure it’s powered and in range.");
@@ -109,41 +110,41 @@ namespace BaseballCardGrader.Maui.Services
         {
             try
             {
-                await adapter.ConnectToDeviceAsync(e.Device);
-                await adapter.StopScanningForDevicesAsync();
-                connectedDevice = e.Device;
+                await _adapter.ConnectToDeviceAsync(e.Device);
+                await _adapter.StopScanningForDevicesAsync();
+                _connectedDevice = e.Device;
 
-                connectedService = await connectedDevice.GetServiceAsync(new Guid(ServiceUuid));
-                if (connectedService == null)
+                _connectedService = await _connectedDevice.GetServiceAsync(new Guid(ServiceUuid));
+                if (_connectedService == null)
                 {
                     OnError?.Invoke("Service not found.");
                     return;
                 }
 
-                connectedCharacteristic = await connectedService.GetCharacteristicAsync(new Guid(CharacteristicUuid));
-                if (connectedCharacteristic == null)
+                _connectedCharacteristic = await _connectedService.GetCharacteristicAsync(new Guid(CharacteristicUuid));
+                if (_connectedCharacteristic == null)
                 {
                     OnError?.Invoke("Characteristic not found.");
                     return;
                 }
 
-                if (connectedCharacteristic.CanUpdate)
+                if (_connectedCharacteristic.CanUpdate)
                 {
-                    connectedCharacteristic.ValueUpdated += OnCharacteristicValueChanged;
-                    await connectedCharacteristic.StartUpdatesAsync();
+                    _connectedCharacteristic.ValueUpdated += OnCharacteristicValueChanged;
+                    await _connectedCharacteristic.StartUpdatesAsync();
                 }
 
                 OnConnectionStateChanged?.Invoke(ConnectionState.Connected);
             }
             catch (DeviceConnectionException)
             {
-                await adapter.StopScanningForDevicesAsync();
+                await _adapter.StopScanningForDevicesAsync();
                 OnConnectionStateChanged?.Invoke(ConnectionState.Disconnected);
                 OnError?.Invoke("Esp32 found but could not connect.");
             }
         }
 
-        private void OnCharacteristicValueChanged(object sender, CharacteristicUpdatedEventArgs e)
+        private void OnCharacteristicValueChanged(object? sender, CharacteristicUpdatedEventArgs e)
         {
             var value = Encoding.UTF8.GetString(e.Characteristic.Value);
             if (Enum.TryParse(value, out NotificationType note))
@@ -152,35 +153,35 @@ namespace BaseballCardGrader.Maui.Services
 
         public async Task SendCommandToEsp32(string command)
         {
-            if (connectedCharacteristic == null) return;
-            await connectedCharacteristic.WriteAsync(Encoding.UTF8.GetBytes(command));
+            if (_connectedCharacteristic == null) return;
+            await _connectedCharacteristic.WriteAsync(Encoding.UTF8.GetBytes(command));
         }
 
         public async Task DisconnectAsync()
         {
-            if (connectedDevice == null) return;
+            if (_connectedDevice == null) return;
 
-            if (connectedCharacteristic != null)
+            if (_connectedCharacteristic != null)
             {
-                connectedCharacteristic.ValueUpdated -= OnCharacteristicValueChanged;
-                await connectedCharacteristic.StopUpdatesAsync();
+                _connectedCharacteristic.ValueUpdated -= OnCharacteristicValueChanged;
+                await _connectedCharacteristic.StopUpdatesAsync();
             }
 
-            await adapter.DisconnectDeviceAsync(connectedDevice);
+            await _adapter.DisconnectDeviceAsync(_connectedDevice);
 
-            connectedDevice = null;
-            connectedService = null;
-            connectedCharacteristic = null;
+            _connectedDevice = null;
+            _connectedService = null;
+            _connectedCharacteristic = null;
 
             OnConnectionStateChanged?.Invoke(ConnectionState.Disconnected);
-            OnError?.Invoke(null);
+            OnError?.Invoke(string.Empty);
         }
 
         public void Dispose()
         {
-            adapter.DeviceDiscovered -= OnDeviceDiscovered;
-            if (connectedCharacteristic != null)
-                connectedCharacteristic.ValueUpdated -= OnCharacteristicValueChanged;
+            _adapter.DeviceDiscovered -= OnDeviceDiscovered;
+            if (_connectedCharacteristic != null)
+                _connectedCharacteristic.ValueUpdated -= OnCharacteristicValueChanged;
         }
     }
 }
