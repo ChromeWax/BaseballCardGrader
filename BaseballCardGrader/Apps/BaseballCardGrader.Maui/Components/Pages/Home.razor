@@ -36,49 +36,39 @@
     private Esp32BluetoothService.ConnectionState _connectionState = Esp32BluetoothService.ConnectionState.Disconnected;
     private string? _errorMessage;
 
-    private Action<Esp32BluetoothService.ConnectionState>? _connectionHandler;
-    private Action<string?>? _errorHandler;
-    private Action<Esp32BluetoothService.NotificationType>? _notificationHandler;
-
-    protected override void OnInitialized()
-    {
-        _connectionHandler += state =>
-        {
-            _connectionState = state;
-            InvokeAsync(StateHasChanged);
-        };
-
-        _errorHandler = msg =>
-        {
-            _errorMessage = msg;
-            InvokeAsync(StateHasChanged);
-        };
-
-        _notificationHandler = type =>
-        {
-            _notificationCount += (type == Esp32BluetoothService.NotificationType.LedOn) ? 1 : -1;
-            InvokeAsync(StateHasChanged);
-        };
-
-
-        Esp32Service.OnConnectionStateChanged += _connectionHandler;
-        Esp32Service.OnError += _errorHandler;
-        Esp32Service.OnNotification += _notificationHandler;
-    }
-
     private async Task ConnectToEsp32() => await Esp32Service.ConnectAsync();
     private async Task SendCommand(string cmd) => await Esp32Service.SendCommandToEsp32(cmd);
     private async Task DisconnectFromEsp32() => await Esp32Service.DisconnectAsync();
+    
+    protected override void OnInitialized()
+    {
+        Esp32Service.OnConnectionStateChanged += OnConnectionStateChanged;
+        Esp32Service.OnError += OnError;
+        Esp32Service.OnNotification += OnNotification;
+    }
 
     public void Dispose()
     {
-        if (_connectionHandler != null)
-            Esp32Service.OnConnectionStateChanged -= _connectionHandler;
-
-        if (_errorHandler != null)
-            Esp32Service.OnError -= _errorHandler;
-
-        if (_notificationHandler != null)
-            Esp32Service.OnNotification -= _notificationHandler;
+        Esp32Service.OnConnectionStateChanged -= OnConnectionStateChanged;
+        Esp32Service.OnError -= OnError;
+        Esp32Service.OnNotification -= OnNotification;
+    }
+    
+    private void OnConnectionStateChanged(Esp32BluetoothService.ConnectionState state)
+    {
+        _connectionState = state;
+        InvokeAsync(StateHasChanged);
+    }
+    
+    private void OnError(string message)
+    {
+        _errorMessage = message;
+        InvokeAsync(StateHasChanged);
+    }
+    
+    private void OnNotification(Esp32BluetoothService.NotificationType type)
+    {
+        _notificationCount += (type == Esp32BluetoothService.NotificationType.LedOn) ? 1 : -1;
+        InvokeAsync(StateHasChanged);
     }
 }

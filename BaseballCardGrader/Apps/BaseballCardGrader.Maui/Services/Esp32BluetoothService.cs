@@ -10,7 +10,7 @@ namespace BaseballCardGrader.Maui.Services
     public class Esp32BluetoothService : IDisposable
     {
         public event Action<ConnectionState>? OnConnectionStateChanged;
-        public event Action<string?>? OnError;
+        public event Action<string>? OnError;
         public event Action<NotificationType>? OnNotification;
 
         private IBluetoothLE ble;
