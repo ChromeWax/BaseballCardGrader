@@ -38,11 +38,14 @@ const int sleepTime = oneMinute * 3;
 // function declarations
 Command parseCommand(const std::string& value);
 void setAllLedsOff();
-void enableLedByCommandForOneSecond(Command command);
+void enableLedWithTimerByCommand(Command command);
 void goToSleep();
 
 // global variables
 BLEAdvertising *pAdvertising = nullptr;
+BLECharacteristic *pCharacteristic = nullptr;
+Command activeLedCommand = Command::NONE;
+unsigned long ledOnTime = 0;
 unsigned long lastActivityTime = 0;
 
 // callbacks for connecting and disconnecting BLE clients
@@ -68,7 +71,7 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
         Command command = parseCommand(value);
         if (command == Command::NONE) return;
 
-        enableLedByCommandForOneSecond(command);
+        enableLedWithTimerByCommand(command);
         lastActivityTime = millis();
       }
     }
@@ -89,15 +92,18 @@ void setAllLedsOff() {
   digitalWrite(rightLedPin, LOW);
 }
 
-void enableLedByCommandForOneSecond(Command command) {
+void enableLedWithTimerByCommand(Command command) {
   setAllLedsOff();
 
-  // Set the selected LED HIGH if valid
   auto entry = commandToLedPin.find(command);
   if (entry != commandToLedPin.end()) {
     digitalWrite(entry->second, HIGH);
-    delay(oneSecond); 
-    digitalWrite(entry->second, LOW);
+    if (pCharacteristic) {
+      pCharacteristic->setValue("LedOn");
+      pCharacteristic->notify();
+    }
+    activeLedCommand = command;
+    ledOnTime = millis();
   }
 }
 
@@ -125,11 +131,11 @@ void setup() {
   pServer->setCallbacks(new MyServerCallbacks());
 
   BLEService *pService = pServer->createService(SERVICE_UUID);
-  BLECharacteristic *pCharacteristic = pService->createCharacteristic(
-                                         CHARACTERISTIC_UUID,
-                                         BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
-                                       );
+  pCharacteristic = pService->createCharacteristic(
+    CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_WRITE |
+    BLECharacteristic::PROPERTY_NOTIFY
+  );
   pCharacteristic->setCallbacks(new MyCharacteristicCallbacks());
   pService->start();
 
@@ -145,5 +151,21 @@ void loop() {
   if (elapsedTime > sleepTime) {
     goToSleep();
   }
-  delay(100);
+
+  // Disable LED after one second 
+  if (activeLedCommand != Command::NONE) {
+    if (millis() - ledOnTime >= oneSecond) {
+      auto entry = commandToLedPin.find(activeLedCommand);
+      if (entry != commandToLedPin.end()) {
+        digitalWrite(entry->second, LOW);
+      }
+      activeLedCommand = Command::NONE;
+      if (pCharacteristic) {
+        pCharacteristic->setValue("LedOff");
+        pCharacteristic->notify();
+      }
+    }
+  }
+
+  delay(10);
 }
