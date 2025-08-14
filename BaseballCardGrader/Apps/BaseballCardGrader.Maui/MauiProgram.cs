@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Maui;
+﻿using BaseballCardGrader.Maui.Services;
+using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 
 namespace BaseballCardGrader.Maui
@@ -17,8 +18,13 @@ namespace BaseballCardGrader.Maui
 
             builder.Services.AddMauiBlazorWebView();
 
+            builder.Services.AddSingleton<Esp32BluetoothService>();
+
 #if DEBUG
-    		builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Services.AddBlazorWebViewDeveloperTools();
+
+
+            
     		builder.Logging.AddDebug();
 #endif
 
