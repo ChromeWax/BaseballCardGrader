@@ -1,6 +1,7 @@
 ﻿using BaseballCardGrader.Maui.Services;
 using BaseballCardGrader.Maui.State;
 using CommunityToolkit.Maui;
+using ImageProcessor.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace BaseballCardGrader.Maui
@@ -13,15 +14,19 @@ namespace BaseballCardGrader.Maui
             builder.UseMauiApp<App>().ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-            }).UseMauiCommunityToolkitCamera().UseMauiCommunityToolkit();
+            }).UseMauiCommunityToolkitCamera();
             builder.Services.AddMauiBlazorWebView();
+            
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
             builder.Logging.AddDebug();
 #endif
+
+            builder.Services.AddImageProcessor();
             builder.Services.AddSingleton<ApplicationState>();
             builder.Services.AddSingleton<Esp32BluetoothService>();
             builder.Services.AddSingleton<IImageConversionService, ImageConversionService>();
+            
             return builder.Build();
         }
     }
