@@ -1,4 +1,5 @@
 ﻿using BaseballCardGrader.Maui.Services;
+using BaseballCardGrader.Maui.State;
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 
@@ -24,7 +25,9 @@ namespace BaseballCardGrader.Maui
     		builder.Logging.AddDebug();
 #endif
             
+            builder.Services.AddSingleton<ApplicationState>();
             builder.Services.AddSingleton<Esp32BluetoothService>();
+            builder.Services.AddSingleton<IImageConversionService, ImageConversionService>();
 
             return builder.Build();
         }
