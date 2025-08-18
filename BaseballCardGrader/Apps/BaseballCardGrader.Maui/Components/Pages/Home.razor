@@ -1,6 +1,6 @@
 ﻿@page "/"
-@using BaseballCardGrader.Maui.Services
-@inject Esp32BluetoothService Esp32Service
+@using BaseballCardGrader.Maui.Services.Bluetooth
+@inject IEsp32BluetoothService Esp32Service
 @inject NavigationManager Navigation
 
 <h1>ESP32 Test</h1>
@@ -10,18 +10,18 @@
 
 @switch (_connectionState)
 {
-    case Esp32BluetoothService.ConnectionState.Disconnected:
+    case BluetoothConnectionState.Disconnected:
         <button @onclick="ConnectToEsp32">Connect to Esp32</button>
         break;
-    case Esp32BluetoothService.ConnectionState.Scanning:
+    case BluetoothConnectionState.Scanning:
         <p>Scanning for Esp32...</p>
         break;
-    case Esp32BluetoothService.ConnectionState.Connected:
+    case BluetoothConnectionState.Connected:
         <p>Connected to ESP32!</p>
-        <button @onclick="@(() => SendCommand(nameof(Esp32BluetoothService.Esp32Command.Up)))">Up</button>
-        <button @onclick="@(() => SendCommand(nameof(Esp32BluetoothService.Esp32Command.Down)))">Down</button>
-        <button @onclick="@(() => SendCommand(nameof(Esp32BluetoothService.Esp32Command.Left)))">Left</button>
-        <button @onclick="@(() => SendCommand(nameof(Esp32BluetoothService.Esp32Command.Right)))">Right</button>
+        <button @onclick="@(() => SendCommand(nameof(BluetoothCommand.Up)))">Up</button>
+        <button @onclick="@(() => SendCommand(nameof(BluetoothCommand.Down)))">Down</button>
+        <button @onclick="@(() => SendCommand(nameof(BluetoothCommand.Left)))">Left</button>
+        <button @onclick="@(() => SendCommand(nameof(BluetoothCommand.Right)))">Right</button>
         <button @onclick=DisconnectFromEsp32>Disconnect</button>
         break;
 }
@@ -33,7 +33,7 @@
 
 @code {
     private int _notificationCount;
-    private Esp32BluetoothService.ConnectionState _connectionState = Esp32BluetoothService.ConnectionState.Disconnected;
+    private BluetoothConnectionState _connectionState = BluetoothConnectionState.Disconnected;
     private string? _errorMessage;
 
     private async Task ConnectToEsp32() => await Esp32Service.ConnectAsync();
@@ -54,7 +54,7 @@
         Esp32Service.OnNotification -= OnNotification;
     }
     
-    private void OnConnectionStateChanged(Esp32BluetoothService.ConnectionState state)
+    private void OnConnectionStateChanged(BluetoothConnectionState state)
     {
         _connectionState = state;
         InvokeAsync(StateHasChanged);
@@ -66,9 +66,9 @@
         InvokeAsync(StateHasChanged);
     }
     
-    private void OnNotification(Esp32BluetoothService.NotificationType type)
+    private void OnNotification(BluetoothNotificationType type)
     {
-        _notificationCount += (type == Esp32BluetoothService.NotificationType.LedOn) ? 1 : -1;
+        _notificationCount += (type == BluetoothNotificationType.LedOn) ? 1 : -1;
         InvokeAsync(StateHasChanged);
     }
 }

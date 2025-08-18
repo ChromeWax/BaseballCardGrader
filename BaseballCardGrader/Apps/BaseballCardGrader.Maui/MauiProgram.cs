@@ -1,4 +1,6 @@
 ﻿using BaseballCardGrader.Maui.Services;
+using BaseballCardGrader.Maui.Services.Bluetooth;
+using BaseballCardGrader.Maui.Services.ImageConversion;
 using BaseballCardGrader.Maui.State;
 using CommunityToolkit.Maui;
 using ImageProcessor.DependencyInjection;
@@ -24,7 +26,7 @@ namespace BaseballCardGrader.Maui
 
             builder.Services.AddImageProcessor();
             builder.Services.AddSingleton<ApplicationState>();
-            builder.Services.AddSingleton<Esp32BluetoothService>();
+            builder.Services.AddSingleton<IEsp32BluetoothService, Esp32BluetoothService>();
             builder.Services.AddSingleton<IImageConversionService, ImageConversionService>();
             
             return builder.Build();

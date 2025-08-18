@@ -1,4 +1,4 @@
-﻿using BaseballCardGrader.Maui.Services;
+﻿using BaseballCardGrader.Maui.Services.ImageConversion;
 using BaseballCardGrader.Maui.State;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;

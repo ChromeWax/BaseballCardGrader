@@ -1,7 +1,7 @@
 ﻿using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace BaseballCardGrader.Maui.Services;
+namespace BaseballCardGrader.Maui.Services.ImageConversion;
 
 public class ImageConversionService :  IImageConversionService 
 {
