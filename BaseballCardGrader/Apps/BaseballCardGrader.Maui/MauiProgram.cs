@@ -10,25 +10,18 @@ namespace BaseballCardGrader.Maui
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
-            builder
-                .UseMauiApp<App>()
-                .ConfigureFonts(fonts =>
-                {
-                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                }).UseMauiCommunityToolkitCamera();
-
+            builder.UseMauiApp<App>().ConfigureFonts(fonts =>
+            {
+                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+            }).UseMauiCommunityToolkitCamera().UseMauiCommunityToolkit();
             builder.Services.AddMauiBlazorWebView();
-
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
-
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
-            
             builder.Services.AddSingleton<ApplicationState>();
             builder.Services.AddSingleton<Esp32BluetoothService>();
             builder.Services.AddSingleton<IImageConversionService, ImageConversionService>();
-
             return builder.Build();
         }
     }
