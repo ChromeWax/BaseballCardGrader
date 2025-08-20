@@ -1,26 +1,28 @@
-﻿using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+﻿
+using SkiaSharp;
 
 namespace BaseballCardGrader.Maui.Services.ImageConversion;
 
 public class ImageConversionService :  IImageConversionService 
 {
-    public Image<Rgb24> ConvertJpegBytesToRgbImage(byte[] jpegBytes)
+    public string ConvertImageToBase64(SKBitmap bitmap)
     {
-        return SixLabors.ImageSharp.Image.Load<Rgb24>(jpegBytes);
-    }
-
-    public Image<L8> ConvertJpegBytesToGrayscaleImage(byte[] jpegBytes)
-    {
-        return SixLabors.ImageSharp.Image.Load<L8>(jpegBytes);
-    }
-
-    public async Task<string> ConvertRgbImageToBase64(Image<Rgb24> image)
-    {
+        bitmap = RotateClockwise(bitmap);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 90);
         using var ms = new MemoryStream();
-        await image.SaveAsPngAsync(ms);
-        ms.Position = 0;
-        var buffer = ms.ToArray();
-        return Convert.ToBase64String(buffer);
+        data.SaveTo(ms);
+        return Convert.ToBase64String(ms.ToArray());
+    }
+    
+    private SKBitmap RotateClockwise(SKBitmap bitmap)
+    {
+        var rotated = new SKBitmap(bitmap.Height, bitmap.Width);
+        using var canvas = new SKCanvas(rotated);
+        canvas.Translate(rotated.Width / 2, rotated.Height / 2);
+        canvas.RotateDegrees(90);
+        canvas.Translate(-bitmap.Width / 2, -bitmap.Height / 2);
+        canvas.DrawBitmap(bitmap, 0, 0);
+        return rotated;
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿/*
+using System.Numerics;
 using Mediator;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Advanced;
@@ -61,4 +62,5 @@ public class ConvertImageToNormalMapRequestHandler : IRequestHandler<ConvertImag
         return (byte)((value - minSrc) * (maxDst - minDst) / (float)(maxSrc - minSrc) + minDst);
     }
 }
+*/
 
