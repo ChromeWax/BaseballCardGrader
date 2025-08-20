@@ -58,6 +58,13 @@
 
         <!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
         <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Remove="Resources\BaseballCardGraderModel.onnx" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="Resources/Raw/BaseballCardGraderModel.onnx">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
     <ItemGroup>
@@ -66,11 +73,24 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="9.0.90" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.7" />
         <PackageReference Include="Plugin.BLE" Version="3.1.0" />
-        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+        <PackageReference Include="SkiaSharp" Version="3.119.0" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\ImageProcessor\ImageProcessor.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <MauiXaml Update="Views\CaptureImagePage.xaml">
+        <SubType>Designer</SubType>
+      </MauiXaml>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="Views\CaptureImagePage.xaml.cs">
+        <DependentUpon>CaptureImagePage.xaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
     </ItemGroup>
 
 </Project>

@@ -1,0 +1,30 @@
+﻿@page "/"
+@using BaseballCardGrader.Maui.State
+@using BaseballCardGrader.Maui.Views
+@inject ApplicationState ApplicationState
+@inject IServiceProvider ServiceProvider
+@inject NavigationManager NavigationManager
+
+<h1>Loading Page...</h1>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        switch (ApplicationState.PipelineStep)
+        {
+            case PipelineStep.ConnectToEsp32:
+                NavigationManager.NavigateTo("/ConnectToEsp32");
+                break;
+            case PipelineStep.CaptureImages:
+                var page = ServiceProvider.GetService<CaptureImagePage>();
+                await App.Current.MainPage.Navigation.PushAsync(page);
+                break;
+            case PipelineStep.ProcessImages:
+                NavigationManager.NavigateTo("/EvaluateImages");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+}

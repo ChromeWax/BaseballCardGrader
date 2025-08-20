@@ -1,4 +1,5 @@
-﻿using Mediator;
+﻿/*
+using Mediator;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -6,3 +7,4 @@ namespace ImageProcessor.Features.ConvertImageToNormalMap;
 
 public record ConvertImageToNormalMapRequest(
     Image<L8> originalTopImage, Image<L8> originalBottomImage, Image<L8> originalRightImage, Image<L8> originalLeftImage) : IRequest<Image<Rgb24>>;
+    */

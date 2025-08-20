@@ -1,7 +1,6 @@
 using Mediator;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using SkiaSharp;
 
 namespace ImageProcessor.Features.AnnotateImageForDefects;
 
-public record AnnotateImageForDefectsRequest(string ModelFilePath, Image<Rgb24> OriginalImage, Image<Rgb24> OverlayImage) : IRequest<Image<Rgb24>>;
+public record AnnotateImageForDefectsRequest(MemoryStream ModelMemoryStream, SKBitmap topImage, SKBitmap rightImage, SKBitmap bottomImage, SKBitmap leftImage) : IRequest<SKBitmap>;

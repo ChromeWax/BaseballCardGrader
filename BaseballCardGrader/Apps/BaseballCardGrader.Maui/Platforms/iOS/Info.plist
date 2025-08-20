@@ -41,5 +41,8 @@
     <!--Description of the Bluetooth request message (required on iOS 13)-->
     <key>NSBluetoothAlwaysUsageDescription</key>
     <string>This app uses Bluetooth to connect to and communicate with an ESP32 device for grading baseball cards.</string>
+
+    <key>NSCameraUsageDescription</key>
+    <string>This app uses the camera to scan and capture images of baseball cards for grading purposes.</string>
 </dict>
 </plist>

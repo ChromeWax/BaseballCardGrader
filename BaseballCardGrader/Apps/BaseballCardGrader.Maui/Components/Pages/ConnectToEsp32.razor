@@ -1,0 +1,107 @@
+@page "/ConnectToEsp32"
+@using BaseballCardGrader.Maui.Services.Bluetooth
+@using BaseballCardGrader.Maui.State
+@inject ApplicationState ApplicationState
+@inject IEsp32BluetoothService Esp32Service
+@inject NavigationManager NavigationManager
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex align-items-center">
+                    <i class="bi bi-bluetooth me-2"></i>
+                    <h5 class="mb-0">Connect to ESP32</h5>
+                </div>
+
+                <div class="card-body">
+                    <p class="text-muted mb-4">Connect to your ESP32 device to start capturing images.</p>
+
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="me-2 small text-muted">Status:</span>
+                        <span class="badge @GetStatusBadgeClass()">@_connectionState</span>
+                    </div>
+
+                    @if (_connectionState == BluetoothConnectionState.Disconnected)
+                    {
+                        <div class="d-grid">
+                            <button class="btn btn-primary"
+                                    @onclick="ConnectToEsp32Async"
+                                    disabled="@IsBusy">
+                                <i class="bi bi-plug me-1"></i>Connect to ESP32
+                            </button>
+                        </div>
+                    }
+                    else if (_connectionState == BluetoothConnectionState.Scanning)
+                    {
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="spinner-border text-primary me-2" role="status" aria-hidden="true"></div>
+                            <span>Scanning for ESP32...</span>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-outline-secondary" disabled>
+                                <i class="bi bi-hourglass-split me-1"></i>Connecting...
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <div class="card-footer">
+                        <div class="alert alert-danger d-flex align-items-center mb-0" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <div>@_errorMessage</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private BluetoothConnectionState _connectionState = BluetoothConnectionState.Disconnected;
+    private string? _errorMessage;
+    
+    private bool IsBusy => _connectionState == BluetoothConnectionState.Scanning;
+
+    private async Task ConnectToEsp32Async() => await Esp32Service.ConnectAsync();
+    
+    protected override void OnInitialized()
+    {
+        ApplicationState.PipelineStep = PipelineStep.ConnectToEsp32;
+        Esp32Service.OnConnectionStateChanged += OnConnectionStateChanged;
+        Esp32Service.OnError += OnError;
+    }
+
+    public void Dispose()
+    {
+        Esp32Service.OnConnectionStateChanged -= OnConnectionStateChanged;
+        Esp32Service.OnError -= OnError;
+    }
+    
+    private void OnConnectionStateChanged(BluetoothConnectionState state)
+    {
+        _connectionState = state;
+        InvokeAsync(StateHasChanged);
+
+        if (state != BluetoothConnectionState.Connected) return;
+        
+        ApplicationState.PipelineStep = PipelineStep.CaptureImages;
+        NavigationManager.NavigateTo("/");
+    }
+    
+    private void OnError(string message)
+    {
+        _errorMessage = message;
+        InvokeAsync(StateHasChanged);
+    }
+    
+    private string GetStatusBadgeClass() => _connectionState switch
+    {
+        BluetoothConnectionState.Disconnected => "bg-secondary",
+        BluetoothConnectionState.Scanning => "bg-info text-dark",
+        _ => "bg-secondary"
+    };
+}

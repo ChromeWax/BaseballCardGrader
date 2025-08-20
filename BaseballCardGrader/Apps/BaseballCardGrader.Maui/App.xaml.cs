@@ -9,7 +9,7 @@
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            return new Window(new MainPage()) { Title = "BaseballCardGrader.Maui" };
+            return new Window(new NavigationPage(new MainPage())) { Title = "BaseballCardGrader.Maui" };
         }
     }
 }

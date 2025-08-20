@@ -1,0 +1,115 @@
+﻿@page "/EvaluateImages"
+@using BaseballCardGrader.Maui.Services.Bluetooth
+@using BaseballCardGrader.Maui.Services.ImageConversion
+@using BaseballCardGrader.Maui.State
+@using ImageProcessor.Features.AnnotateImageForDefects
+@using Mediator
+
+@inject ISender Sender
+@inject ApplicationState ApplicationState
+@inject NavigationManager NavigationManager
+@inject IEsp32BluetoothService Esp32BluetoothService
+@inject IImageConversionService ImageConversionService
+
+@if (IsEvaluating)
+{
+    <div class="container py-5">
+        <div class="d-flex flex-column align-items-center text-center">
+            <div class="spinner-border text-primary mb-3" role="status" aria-hidden="true"></div>
+            <p class="lead mb-0">Evaluating images...</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container py-4">
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-danger d-flex align-items-center" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <div>@_error</div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(_annotatedImage))
+        {
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Evaluated Image</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <img src="data:image/jpeg;base64,@_annotatedImage" alt="Evaluated Image" class="img-fluid rounded border" style="max-height: 480px; object-fit: contain;" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<div class="container py-3">
+    <div class="d-flex justify-content-end gap-2">
+        <button class="btn btn-secondary" @onclick="TryAgain" disabled="@IsEvaluating">
+            <i class="bi bi-arrow-repeat me-1"></i>Try Again
+        </button>
+        <button class="btn btn-outline-danger" @onclick="DisconnectEsp32" disabled="@IsEvaluating">
+            <i class="bi bi-bluetooth me-1"></i>Disconnect ESP32
+        </button>
+    </div>
+</div>
+
+@code {
+    private string? _annotatedImage;
+    private string? _error;
+    
+    private bool IsEvaluating => string.IsNullOrEmpty(_annotatedImage) && string.IsNullOrEmpty(_error);
+    
+    protected override async Task OnInitializedAsync()
+    {
+        if (!ApplicationState.ImagePositionToSkBitmap.ContainsKey(ImagePosition.Top) ||
+            !ApplicationState.ImagePositionToSkBitmap.ContainsKey(ImagePosition.Right) ||
+            !ApplicationState.ImagePositionToSkBitmap.ContainsKey(ImagePosition.Bottom) ||
+            !ApplicationState.ImagePositionToSkBitmap.ContainsKey(ImagePosition.Left))
+        {
+            _error = "Please capture images before evaluating.";
+            return;
+        }
+        
+        // Load images
+        var topImage = ApplicationState.ImagePositionToSkBitmap[ImagePosition.Top];
+        var rightImage = ApplicationState.ImagePositionToSkBitmap[ImagePosition.Right];
+        var bottomImage = ApplicationState.ImagePositionToSkBitmap[ImagePosition.Bottom];
+        var leftImage = ApplicationState.ImagePositionToSkBitmap[ImagePosition.Left];
+        
+        // Load the ONNX model from the app package
+        await using var assetStream = await FileSystem.OpenAppPackageFileAsync("BaseballCardGraderModel.onnx");
+        using var onnxMemoryStream = new MemoryStream();
+        await assetStream.CopyToAsync(onnxMemoryStream);
+
+        // Annotate overlay image
+        var annotatedImage = await Task.Run(async () =>
+        {
+            return await Sender.Send(
+                new AnnotateImageForDefectsRequest(onnxMemoryStream, topImage, rightImage, bottomImage, leftImage)
+            );
+        });
+
+        _annotatedImage = ImageConversionService.ConvertImageToBase64(annotatedImage);
+        StateHasChanged();
+    }
+
+    private void TryAgain()
+    {
+        ApplicationState.PipelineStep = PipelineStep.CaptureImages;
+        NavigationManager.NavigateTo("/");
+    }
+    
+    private async Task DisconnectEsp32()
+    {
+        await Esp32BluetoothService.DisconnectAsync();
+        ApplicationState.PipelineStep = PipelineStep.ConnectToEsp32;
+        NavigationManager.NavigateTo("/");
+    }
+}
