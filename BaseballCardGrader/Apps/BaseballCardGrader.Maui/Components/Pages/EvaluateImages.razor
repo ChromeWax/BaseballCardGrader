@@ -30,7 +30,39 @@ else
                 <div>@_error</div>
             </div>
         }
+        
+        @if (!string.IsNullOrEmpty(_overlayImage))
+        {
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Overlay Image</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <img src="data:image/jpeg;base64,@_overlayImage" alt="NormalMap Image" class="img-fluid rounded border" style="max-height: 480px; object-fit: contain;" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
 
+        @if (!string.IsNullOrEmpty(_normalMapImage))
+        {
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Normal Image</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <img src="data:image/jpeg;base64,@_normalMapImage" alt="NormalMap Image" class="img-fluid rounded border" style="max-height: 480px; object-fit: contain;" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        
         @if (!string.IsNullOrEmpty(_annotatedImage))
         {
             <div class="row g-4">
@@ -61,10 +93,12 @@ else
 </div>
 
 @code {
+    private string? _overlayImage;
+    private string? _normalMapImage;
     private string? _annotatedImage;
     private string? _error;
     
-    private bool IsEvaluating => string.IsNullOrEmpty(_annotatedImage) && string.IsNullOrEmpty(_error);
+    private bool IsEvaluating => string.IsNullOrEmpty(_normalMapImage) && string.IsNullOrEmpty(_error);
     
     protected override async Task OnInitializedAsync()
     {
@@ -88,6 +122,11 @@ else
         using var onnxMemoryStream = new MemoryStream();
         await assetStream.CopyToAsync(onnxMemoryStream);
 
+        var overlay = await ImageEffects.CreateOverlayImage(topImage, rightImage, bottomImage, leftImage);
+        var normal = await ImageEffects.CreateNormalImage(topImage, rightImage, bottomImage, leftImage);
+        _overlayImage = ImageConversionService.ConvertImageToBase64(overlay);
+        _normalMapImage = ImageConversionService.ConvertImageToBase64(normal);
+        
         // Annotate overlay image
         var annotatedImage = await Task.Run(async () =>
         {
@@ -95,8 +134,8 @@ else
                 new AnnotateImageForDefectsRequest(onnxMemoryStream, topImage, rightImage, bottomImage, leftImage)
             );
         });
-
         _annotatedImage = ImageConversionService.ConvertImageToBase64(annotatedImage);
+        
         StateHasChanged();
     }
 
