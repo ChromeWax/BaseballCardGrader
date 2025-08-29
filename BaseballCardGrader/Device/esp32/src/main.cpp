@@ -18,6 +18,11 @@ enum class Command {
   ToggleAllOn
 };
 
+enum class Notification {
+  LedOn,
+  LedOff
+};
+
 // define led according to pin diagram in article
 const int wakePin = D0;
 const int upLedPin = D3;
@@ -37,6 +42,11 @@ const std::vector<Command> pulseCommands = {
   Command::DownPulse,
   Command::LeftPulse,
   Command::RightPulse
+};
+
+const std::map<Notification, std::string> notificationToString = {
+  { Notification::LedOn, "LedOn" },
+  { Notification::LedOff, "LedOff" }
 };
 
 const int oneSecond = 1000;
@@ -85,13 +95,13 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
         else if (command == Command::ToggleAllOn)
         {
           setAllLedsOn();
-          pCharacteristic->setValue("LedOn");
+          pCharacteristic->setValue(notificationToString.at(Notification::LedOn));
           pCharacteristic->notify();
         }
         else if (command == Command::None)
         {
           setAllLedsOff();
-          pCharacteristic->setValue("LedOff");
+          pCharacteristic->setValue(notificationToString.at(Notification::LedOff));
           pCharacteristic->notify();
         }
         lastActivityTime = millis();
@@ -133,7 +143,7 @@ void enableLedWithTimerByCommand(Command command) {
   if (entry != commandToLedPin.end()) {
     digitalWrite(entry->second, HIGH);
     if (pCharacteristic) {
-      pCharacteristic->setValue("LedOn");
+      pCharacteristic->setValue(notificationToString.at(Notification::LedOn));
       pCharacteristic->notify();
     }
     activeCommand = command;
@@ -195,7 +205,7 @@ void loop() {
       }
       activeCommand = Command::None;
       if (pCharacteristic) {
-        pCharacteristic->setValue("LedOff");
+        pCharacteristic->setValue(notificationToString.at(Notification::LedOff));
         pCharacteristic->notify();
       }
     }
