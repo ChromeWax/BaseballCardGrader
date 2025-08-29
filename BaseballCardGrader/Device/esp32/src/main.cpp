@@ -9,12 +9,18 @@
 #define SERVICE_UUID        "7123acc7-b24d-4eee-9c7f-ee6302637aef"
 #define CHARACTERISTIC_UUID "8be0f272-b3be-4351-a3fc-d57341aa628e"
 
-enum Command {
-  NONE,
-  UP,
-  DOWN,
-  LEFT,
-  RIGHT
+enum class Command {
+  None,
+  UpPulse,
+  DownPulse,
+  LeftPulse,
+  RightPulse,
+  ToggleAllOn
+};
+
+enum class Notification {
+  LedOn,
+  LedOff
 };
 
 // define led according to pin diagram in article
@@ -25,10 +31,22 @@ const int leftLedPin = D5;
 const int rightLedPin = D6;
 
 const std::map<Command, int> commandToLedPin = {
-  { UP, upLedPin },
-  { DOWN, downLedPin },
-  { LEFT, leftLedPin },
-  { RIGHT, rightLedPin }
+  { Command::UpPulse, upLedPin },
+  { Command::DownPulse, downLedPin },
+  { Command::LeftPulse, leftLedPin },
+  { Command::RightPulse, rightLedPin }
+};
+
+const std::vector<Command> pulseCommands = {
+  Command::UpPulse,
+  Command::DownPulse,
+  Command::LeftPulse,
+  Command::RightPulse
+};
+
+const std::map<Notification, std::string> notificationToString = {
+  { Notification::LedOn, "LedOn" },
+  { Notification::LedOff, "LedOff" }
 };
 
 const int oneSecond = 1000;
@@ -38,13 +56,15 @@ const int sleepTime = oneMinute * 3;
 // function declarations
 Command parseCommand(const std::string& value);
 void setAllLedsOff();
+void setAllLedsOn();
 void enableLedWithTimerByCommand(Command command);
 void goToSleep();
+bool isPulseCommand(Command cmd);
 
 // global variables
 BLEAdvertising *pAdvertising = nullptr;
 BLECharacteristic *pCharacteristic = nullptr;
-Command activeLedCommand = Command::NONE;
+Command activeCommand = Command::None;
 unsigned long ledOnTime = 0;
 unsigned long lastActivityTime = 0;
 
@@ -69,20 +89,33 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
 
       if (value.length() > 0) {
         Command command = parseCommand(value);
-        if (command == Command::NONE) return;
 
-        enableLedWithTimerByCommand(command);
+        if (isPulseCommand(command))
+          enableLedWithTimerByCommand(command);
+        else if (command == Command::ToggleAllOn)
+        {
+          setAllLedsOn();
+          pCharacteristic->setValue(notificationToString.at(Notification::LedOn));
+          pCharacteristic->notify();
+        }
+        else if (command == Command::None)
+        {
+          setAllLedsOff();
+          pCharacteristic->setValue(notificationToString.at(Notification::LedOff));
+          pCharacteristic->notify();
+        }
         lastActivityTime = millis();
       }
     }
 };
 
 Command parseCommand(const std::string& value) {
-    if (value == "Up") return Command::UP;
-    if (value == "Down") return Command::DOWN;
-    if (value == "Left") return Command::LEFT;
-    if (value == "Right") return Command::RIGHT;
-    return Command::NONE;
+    if (value == "UpPulse") return Command::UpPulse;
+    if (value == "DownPulse") return Command::DownPulse;
+    if (value == "LeftPulse") return Command::LeftPulse;
+    if (value == "RightPulse") return Command::RightPulse;
+    if (value == "ToggleAllOn") return Command::ToggleAllOn;
+    return Command::None;
 }
 
 void setAllLedsOff() {
@@ -92,6 +125,17 @@ void setAllLedsOff() {
   digitalWrite(rightLedPin, LOW);
 }
 
+void setAllLedsOn() {
+  digitalWrite(upLedPin, HIGH);
+  digitalWrite(downLedPin, HIGH);
+  digitalWrite(leftLedPin, HIGH);
+  digitalWrite(rightLedPin, HIGH);
+}
+
+bool isPulseCommand(Command cmd) {
+  return std::find(pulseCommands.begin(), pulseCommands.end(), cmd) != pulseCommands.end();
+}
+
 void enableLedWithTimerByCommand(Command command) {
   setAllLedsOff();
 
@@ -99,10 +143,10 @@ void enableLedWithTimerByCommand(Command command) {
   if (entry != commandToLedPin.end()) {
     digitalWrite(entry->second, HIGH);
     if (pCharacteristic) {
-      pCharacteristic->setValue("LedOn");
+      pCharacteristic->setValue(notificationToString.at(Notification::LedOn));
       pCharacteristic->notify();
     }
-    activeLedCommand = command;
+    activeCommand = command;
     ledOnTime = millis();
   }
 }
@@ -153,15 +197,15 @@ void loop() {
   }
 
   // Disable LED after one second 
-  if (activeLedCommand != Command::NONE) {
+  if (isPulseCommand(activeCommand)) {
     if (millis() - ledOnTime >= oneSecond) {
-      auto entry = commandToLedPin.find(activeLedCommand);
+      auto entry = commandToLedPin.find(activeCommand);
       if (entry != commandToLedPin.end()) {
         digitalWrite(entry->second, LOW);
       }
-      activeLedCommand = Command::NONE;
+      activeCommand = Command::None;
       if (pCharacteristic) {
-        pCharacteristic->setValue("LedOff");
+        pCharacteristic->setValue(notificationToString.at(Notification::LedOff));
         pCharacteristic->notify();
       }
     }

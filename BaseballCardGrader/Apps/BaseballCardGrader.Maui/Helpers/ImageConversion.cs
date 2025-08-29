@@ -1,13 +1,11 @@
-﻿
 using SkiaSharp;
 
-namespace BaseballCardGrader.Maui.Services.ImageConversion;
+namespace BaseballCardGrader.Maui.Helpers;
 
-public class ImageConversionService :  IImageConversionService 
+public static class ImageConversion
 {
-    public string ConvertImageToBase64(SKBitmap bitmap)
+    public static string ConvertImageToBase64(SKBitmap bitmap)
     {
-        bitmap = RotateClockwise(bitmap);
         using var image = SKImage.FromBitmap(bitmap);
         using var data = image.Encode(SKEncodedImageFormat.Jpeg, 90);
         using var ms = new MemoryStream();
@@ -15,7 +13,7 @@ public class ImageConversionService :  IImageConversionService
         return Convert.ToBase64String(ms.ToArray());
     }
     
-    private SKBitmap RotateClockwise(SKBitmap bitmap)
+    public static SKBitmap RotateClockwise(SKBitmap bitmap)
     {
         var rotated = new SKBitmap(bitmap.Height, bitmap.Width);
         using var canvas = new SKCanvas(rotated);

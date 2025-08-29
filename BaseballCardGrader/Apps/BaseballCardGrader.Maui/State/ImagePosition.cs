@@ -5,5 +5,6 @@ public enum ImagePosition
     Top,
     Bottom,
     Left,
-    Right
+    Right,
+    All
 }

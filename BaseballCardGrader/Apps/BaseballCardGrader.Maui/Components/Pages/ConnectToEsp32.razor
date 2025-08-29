@@ -2,7 +2,7 @@
 @using BaseballCardGrader.Maui.Services.Bluetooth
 @using BaseballCardGrader.Maui.State
 @inject ApplicationState ApplicationState
-@inject IEsp32BluetoothService Esp32Service
+@inject IEsp32BluetoothService Esp32BluetoothService
 @inject NavigationManager NavigationManager
 
 <div class="container py-5">
@@ -66,19 +66,28 @@
     
     private bool IsBusy => _connectionState == BluetoothConnectionState.Scanning;
 
-    private async Task ConnectToEsp32Async() => await Esp32Service.ConnectAsync();
-    
+    private async Task ConnectToEsp32Async()
+    {
+        if (Esp32BluetoothService.ConnectionState != BluetoothConnectionState.Connected)
+            await Esp32BluetoothService.ConnectAsync();
+        else
+        {
+            ApplicationState.PipelineStep = PipelineStep.CaptureImages;
+            NavigationManager.NavigateTo("/");
+        }
+    }
+
     protected override void OnInitialized()
     {
         ApplicationState.PipelineStep = PipelineStep.ConnectToEsp32;
-        Esp32Service.OnConnectionStateChanged += OnConnectionStateChanged;
-        Esp32Service.OnError += OnError;
+        Esp32BluetoothService.OnConnectionStateChanged += OnConnectionStateChanged;
+        Esp32BluetoothService.OnError += OnError;
     }
 
     public void Dispose()
     {
-        Esp32Service.OnConnectionStateChanged -= OnConnectionStateChanged;
-        Esp32Service.OnError -= OnError;
+        Esp32BluetoothService.OnConnectionStateChanged -= OnConnectionStateChanged;
+        Esp32BluetoothService.OnError -= OnError;
     }
     
     private void OnConnectionStateChanged(BluetoothConnectionState state)
