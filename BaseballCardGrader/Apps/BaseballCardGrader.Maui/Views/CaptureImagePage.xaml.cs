@@ -29,8 +29,6 @@ public partial class CaptureImagePage : ContentPage, IDisposable
         _navigationManager = navigationManager;
         _esp32BluetoothService = esp32BluetoothService;
 
-        SelectDefaultCamera();
-
         if (_esp32BluetoothService.ConnectionState != BluetoothConnectionState.Connected)
         {
             NavigateOutOfPage(PipelineStep.ConnectToEsp32);
@@ -41,6 +39,15 @@ public partial class CaptureImagePage : ContentPage, IDisposable
         _esp32BluetoothService.OnConnectionStateChanged += OnConnectionStateChanged;
     }
 
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        
+        await SelectDefaultCamera();
+
+        await TurnOnAllLights();
+    }
+    
     private async Task SelectDefaultCamera()
     {
         var cancellationTokenSource = new CancellationTokenSource();
@@ -77,10 +84,12 @@ public partial class CaptureImagePage : ContentPage, IDisposable
             // Disable the button to prevent clicks during capture
             ((Button)sender).IsEnabled = false;
 
-            await TakePhotoOfImagePositionAndStore(ImagePosition.Top);
-            await TakePhotoOfImagePositionAndStore(ImagePosition.Right);
-            await TakePhotoOfImagePositionAndStore(ImagePosition.Bottom);
-            await TakePhotoOfImagePositionAndStore(ImagePosition.Left);
+            await TakePhotoOfAllLightsAndStore();
+
+            await TakePhotoOfSingleImagePositionAndStore(ImagePosition.Top);
+            await TakePhotoOfSingleImagePositionAndStore(ImagePosition.Right);
+            await TakePhotoOfSingleImagePositionAndStore(ImagePosition.Bottom);
+            await TakePhotoOfSingleImagePositionAndStore(ImagePosition.Left);
 
             step = PipelineStep.ProcessImages;
         }
@@ -103,8 +112,39 @@ public partial class CaptureImagePage : ContentPage, IDisposable
         NavigateOutOfPage(PipelineStep.ConnectToEsp32);
     }
 
-    private async Task TakePhotoOfImagePositionAndStore(ImagePosition imagePosition)
+    private async Task TurnOnAllLights()
     {
+        _notificationTcs = new TaskCompletionSource<BluetoothNotificationType>();
+        await _esp32BluetoothService.SendCommandToEsp32(BluetoothCommand.ToggleAllOn);
+        await _notificationTcs.Task;
+    }
+    
+    private async Task TurnOffAllLights()
+    {
+        _notificationTcs = new TaskCompletionSource<BluetoothNotificationType>();
+        await _esp32BluetoothService.SendCommandToEsp32(BluetoothCommand.None);
+        await _notificationTcs.Task;
+    }
+
+    private async Task TakePhotoOfAllLightsAndStore()
+    {
+        // Captures the image
+        await Task.Delay(TimeSpan.FromMilliseconds(300));
+        var captureImageCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        var stream = await Camera.CaptureImage(captureImageCts.Token);
+        
+        // Saves image to the application state
+        var skBitmap = SKBitmap.Decode(stream);
+        _applicationState.ImagePositionToSkBitmap[ImagePosition.All] = skBitmap;
+        
+        // Turn all leds off
+        await TurnOffAllLights();
+    }
+
+    private async Task TakePhotoOfSingleImagePositionAndStore(ImagePosition imagePosition)
+    {
+        if (imagePosition == ImagePosition.All) return;
+        
         // Start listening for led on notification
         _notificationTcs = new TaskCompletionSource<BluetoothNotificationType>();
         
