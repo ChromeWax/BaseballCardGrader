@@ -1,6 +1,8 @@
-﻿using BaseballCardGrader.Maui.Services.Bluetooth;
+﻿using BaseballCardGrader.Maui.Helpers;
+using BaseballCardGrader.Maui.Services.Bluetooth;
 using BaseballCardGrader.Maui.State;
 using CommunityToolkit.Maui.Core;
+using ImageProcessor.Helper.ImageEffects;
 using Microsoft.AspNetCore.Components;
 using SkiaSharp;
 
@@ -164,6 +166,7 @@ public partial class CaptureImagePage : ContentPage, IDisposable
         
         // Saves image to the application state
         var skBitmap = SKBitmap.Decode(stream);
+        skBitmap = ImageConversion.RotateClockwise(skBitmap);
         _applicationState.ImagePositionToSkBitmap[imagePosition] = skBitmap;
 
         // Waits for the ESP32 to confirm the led has turned off

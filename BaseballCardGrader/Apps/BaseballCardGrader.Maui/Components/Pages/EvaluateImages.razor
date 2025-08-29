@@ -1,6 +1,6 @@
 ﻿@page "/EvaluateImages"
+@using BaseballCardGrader.Maui.Helpers
 @using BaseballCardGrader.Maui.Services.Bluetooth
-@using BaseballCardGrader.Maui.Services.ImageConversion
 @using BaseballCardGrader.Maui.State
 @using ImageProcessor.Features.AnnotateImageForDefects
 @using Mediator
@@ -9,7 +9,6 @@
 @inject ApplicationState ApplicationState
 @inject NavigationManager NavigationManager
 @inject IEsp32BluetoothService Esp32BluetoothService
-@inject IImageConversionService ImageConversionService
 
 @if (IsEvaluating)
 {
@@ -124,8 +123,8 @@ else
 
         var overlay = await ImageEffects.CreateOverlayImage(topImage, rightImage, bottomImage, leftImage);
         var normal = await ImageEffects.CreateNormalImage(topImage, rightImage, bottomImage, leftImage);
-        _overlayImage = ImageConversionService.ConvertImageToBase64(overlay);
-        _normalMapImage = ImageConversionService.ConvertImageToBase64(normal);
+        _overlayImage = ImageConversion.ConvertImageToBase64(overlay);
+        _normalMapImage = ImageConversion.ConvertImageToBase64(normal);
         
         // Annotate overlay image
         var annotatedImage = await Task.Run(async () =>
@@ -134,7 +133,7 @@ else
                 new AnnotateImageForDefectsRequest(onnxMemoryStream, topImage, rightImage, bottomImage, leftImage)
             );
         });
-        _annotatedImage = ImageConversionService.ConvertImageToBase64(annotatedImage);
+        _annotatedImage = ImageConversion.ConvertImageToBase64(annotatedImage);
         
         StateHasChanged();
     }

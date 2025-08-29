@@ -51,22 +51,6 @@ public static class ImageEffects
     }
     #endregion
     
-    #region Convert Image to Base64
-    /// <summary>
-    /// Converts an RGB image to a Base64 string.
-    /// </summary>
-    /// <param name="bitmap"></param>
-    /// <returns></returns>
-    public static string ConvertRgbImageToBase64(SKBitmap bitmap)
-    {
-        using var image = SKImage.FromBitmap(bitmap);
-        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 90);
-        using var ms = new MemoryStream();
-        data.SaveTo(ms);
-        return Convert.ToBase64String(ms.ToArray());
-    }
-    #endregion
-
     #region Resize Image
     /// <summary>
     /// Resizes a bitmap to the specified width and height.
