@@ -14,10 +14,10 @@ public partial class CaptureImagePage : ContentPage, IDisposable
     
     private readonly Dictionary<ImagePosition, BluetoothCommand> _imagePositionToCommand = new()
     {
-        { ImagePosition.Top, BluetoothCommand.Up },
-        { ImagePosition.Bottom, BluetoothCommand.Down },
-        { ImagePosition.Left, BluetoothCommand.Left },
-        { ImagePosition.Right, BluetoothCommand.Right }
+        { ImagePosition.Top, BluetoothCommand.UpPulse },
+        { ImagePosition.Bottom, BluetoothCommand.DownPulse },
+        { ImagePosition.Left, BluetoothCommand.LeftPulse },
+        { ImagePosition.Right, BluetoothCommand.RightPulse }
     };
     
     private TaskCompletionSource<BluetoothNotificationType>? _notificationTcs;
@@ -30,8 +30,15 @@ public partial class CaptureImagePage : ContentPage, IDisposable
         _esp32BluetoothService = esp32BluetoothService;
 
         SelectDefaultCamera();
+
+        if (_esp32BluetoothService.ConnectionState != BluetoothConnectionState.Connected)
+        {
+            NavigateOutOfPage(PipelineStep.ConnectToEsp32);
+            return;
+        }
         
         _esp32BluetoothService.OnNotification += OnNotification;
+        _esp32BluetoothService.OnConnectionStateChanged += OnConnectionStateChanged;
     }
 
     private async Task SelectDefaultCamera()
@@ -54,6 +61,7 @@ public partial class CaptureImagePage : ContentPage, IDisposable
     public void Dispose()
     {
         _esp32BluetoothService.OnNotification -= OnNotification;
+        _esp32BluetoothService.OnConnectionStateChanged -= OnConnectionStateChanged;
     }
     
     private void OnNotification(BluetoothNotificationType type)
@@ -63,39 +71,45 @@ public partial class CaptureImagePage : ContentPage, IDisposable
     
     private async void OnTakeFourPhotosClicked(object sender, EventArgs e)
     {
+        PipelineStep step = PipelineStep.CaptureImages;
         try
         {
             // Disable the button to prevent clicks during capture
             ((Button)sender).IsEnabled = false;
 
-            await TakePhotoAndStore(ImagePosition.Top);
-            await TakePhotoAndStore(ImagePosition.Right);
-            await TakePhotoAndStore(ImagePosition.Bottom);
-            await TakePhotoAndStore(ImagePosition.Left);
+            await TakePhotoOfImagePositionAndStore(ImagePosition.Top);
+            await TakePhotoOfImagePositionAndStore(ImagePosition.Right);
+            await TakePhotoOfImagePositionAndStore(ImagePosition.Bottom);
+            await TakePhotoOfImagePositionAndStore(ImagePosition.Left);
 
-            _applicationState.PipelineStep = PipelineStep.ProcessImages;
+            step = PipelineStep.ProcessImages;
         }
         catch (Exception ex)
         {
             await _esp32BluetoothService.DisconnectAsync();
             await DisplayAlert("Error", "Something went wrong, please reconnect", "OK");
             
-            _applicationState.PipelineStep = PipelineStep.ConnectToEsp32;
+            step = PipelineStep.ConnectToEsp32;
         }
         finally
         {
-            _navigationManager.NavigateTo("/", true);
-            await Navigation.PopAsync();
+            NavigateOutOfPage(step);
         }
     }
+    
+    private void OnConnectionStateChanged(BluetoothConnectionState state)
+    {
+        if (state != BluetoothConnectionState.Disconnected) return;
+        NavigateOutOfPage(PipelineStep.ConnectToEsp32);
+    }
 
-    private async Task TakePhotoAndStore(ImagePosition imagePosition)
+    private async Task TakePhotoOfImagePositionAndStore(ImagePosition imagePosition)
     {
         // Start listening for led on notification
         _notificationTcs = new TaskCompletionSource<BluetoothNotificationType>();
         
         // Tells the ESP32 to turn on the led 
-        await _esp32BluetoothService.SendCommandToEsp32(_imagePositionToCommand[imagePosition].ToString());
+        await _esp32BluetoothService.SendCommandToEsp32(_imagePositionToCommand[imagePosition]);
         
         // Wait for the ESP32 to confirm the led has turned on
         await _notificationTcs.Task;
@@ -114,5 +128,12 @@ public partial class CaptureImagePage : ContentPage, IDisposable
 
         // Waits for the ESP32 to confirm the led has turned off
         await _notificationTcs.Task;
+    }
+    
+    private void NavigateOutOfPage(PipelineStep step)
+    {
+        _applicationState.PipelineStep = step;
+        _navigationManager.NavigateTo("/", true);
+        Navigation.PopAsync();
     }
 }

@@ -141,7 +141,7 @@ else
 
     private void TryAgain()
     {
-        ApplicationState.PipelineStep = PipelineStep.CaptureImages;
+        ApplicationState.PipelineStep = Esp32BluetoothService.ConnectionState == BluetoothConnectionState.Connected ? PipelineStep.CaptureImages : PipelineStep.ConnectToEsp32;
         NavigationManager.NavigateTo("/");
     }
     
