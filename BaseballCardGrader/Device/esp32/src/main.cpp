@@ -83,9 +83,17 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
         if (isPulseCommand(command))
           enableLedWithTimerByCommand(command);
         else if (command == Command::ToggleAllOn)
+        {
           setAllLedsOn();
+          pCharacteristic->setValue("LedOn");
+          pCharacteristic->notify();
+        }
         else if (command == Command::None)
+        {
           setAllLedsOff();
+          pCharacteristic->setValue("LedOff");
+          pCharacteristic->notify();
+        }
         lastActivityTime = millis();
       }
     }
