@@ -1,9 +1,13 @@
 ﻿@page "/EvaluateImages"
+@using System.Globalization
 @using BaseballCardGrader.Maui.Helpers
 @using BaseballCardGrader.Maui.Services.Bluetooth
 @using BaseballCardGrader.Maui.State
+@using CommunityToolkit.Maui.Alerts
+@using CommunityToolkit.Maui.Storage
 @using ImageProcessor.Features.AnnotateImageForDefects
 @using Mediator
+@using SkiaSharp
 
 @inject ISender Sender
 @inject ApplicationState ApplicationState
@@ -29,22 +33,6 @@ else
                 <div>@_error</div>
             </div>
         }
-        
-        @if (!string.IsNullOrEmpty(_overlayImage))
-        {
-            <div class="row g-4">
-                <div class="col-12">
-                    <div class="card shadow-sm">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Overlay Image</h5>
-                        </div>
-                        <div class="card-body text-center">
-                            <img src="data:image/jpeg;base64,@_overlayImage" alt="NormalMap Image" class="img-fluid rounded border" style="max-height: 480px; object-fit: contain;" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
 
         @if (!string.IsNullOrEmpty(_normalMapImage))
         {
@@ -56,6 +44,9 @@ else
                         </div>
                         <div class="card-body text-center">
                             <img src="data:image/jpeg;base64,@_normalMapImage" alt="NormalMap Image" class="img-fluid rounded border" style="max-height: 480px; object-fit: contain;" />
+                            <button class="btn btn-primary" @onclick="@(() => SaveFile(_normalMapBitmap, "normal"))" disabled="@IsEvaluating">
+                                <i class="bi bi-bluetooth me-1"></i>Save Normal Image
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -72,6 +63,9 @@ else
                         </div>
                         <div class="card-body text-center">
                             <img src="data:image/jpeg;base64,@_annotatedImage" alt="Evaluated Image" class="img-fluid rounded border" style="max-height: 480px; object-fit: contain;" />
+                            <button class="btn btn-primary" @onclick="@(() => SaveFile(_annotatedBitmap, "annotated"))" disabled="@IsEvaluating">
+                                <i class="bi bi-bluetooth me-1"></i>Save Annotated Image
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -82,7 +76,7 @@ else
 
 <div class="container py-3">
     <div class="d-flex justify-content-end gap-2">
-        <button class="btn btn-secondary" @onclick="TryAgain" disabled="@IsEvaluating">
+        <button class="btn btn-primary" @onclick="TryAgain" disabled="@IsEvaluating">
             <i class="bi bi-arrow-repeat me-1"></i>Try Again
         </button>
         <button class="btn btn-outline-danger" @onclick="DisconnectEsp32" disabled="@IsEvaluating">
@@ -92,9 +86,10 @@ else
 </div>
 
 @code {
-    private string? _overlayImage;
     private string? _normalMapImage;
+    private SKBitmap? _normalMapBitmap;
     private string? _annotatedImage;
+    private SKBitmap? _annotatedBitmap;
     private string? _error;
     
     private bool IsEvaluating => string.IsNullOrEmpty(_normalMapImage) && string.IsNullOrEmpty(_error);
@@ -121,21 +116,32 @@ else
         using var onnxMemoryStream = new MemoryStream();
         await assetStream.CopyToAsync(onnxMemoryStream);
 
-        var overlay = await ImageEffects.CreateOverlayImage(topImage, rightImage, bottomImage, leftImage);
-        var normal = await ImageEffects.CreateNormalImage(topImage, rightImage, bottomImage, leftImage);
-        _overlayImage = ImageConversion.ConvertImageToBase64(overlay);
-        _normalMapImage = ImageConversion.ConvertImageToBase64(normal);
+        _normalMapBitmap = await ImageEffects.CreateNormalImage(topImage, rightImage, bottomImage, leftImage);
+        _normalMapImage = ImageConversion.ConvertImageToBase64(_normalMapBitmap);
         
         // Annotate overlay image
-        var annotatedImage = await Task.Run(async () =>
-        {
-            return await Sender.Send(
+        _annotatedBitmap = await Sender.Send(
                 new AnnotateImageForDefectsRequest(onnxMemoryStream, topImage, rightImage, bottomImage, leftImage)
-            );
-        });
-        _annotatedImage = ImageConversion.ConvertImageToBase64(annotatedImage);
+        );
+        _annotatedImage = ImageConversion.ConvertImageToBase64(_annotatedBitmap);
         
         StateHasChanged();
+    }
+    
+    private async Task SaveFile(SKBitmap? image, string path)
+    {
+        using var data = image?.Encode(SKEncodedImageFormat.Png, 90);
+        using var stream = new MemoryStream();
+        data?.SaveTo(stream);
+        var fileSaverResult = await FileSaver.Default.SaveAsync($"{DateTime.Now.ToString(CultureInfo.InvariantCulture)}-{path}.png", stream);
+        if (fileSaverResult.IsSuccessful)
+        {
+            await Toast.Make($"The file was saved successfully to location: {fileSaverResult.FilePath}").Show();
+        }
+        else
+        {
+            await Toast.Make($"The file was not saved successfully with error: {fileSaverResult.Exception.Message}").Show();
+        }
     }
 
     private void TryAgain()
