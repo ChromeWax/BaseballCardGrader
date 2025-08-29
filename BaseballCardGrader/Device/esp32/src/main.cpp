@@ -11,10 +11,10 @@
 
 enum class Command {
   None,
-  UpPulse,
-  DownPulse,
-  LeftPulse,
-  RightPulse,
+  UpOn,
+  DownOn,
+  LeftOn,
+  RightOn,
   ToggleAllOn
 };
 
@@ -31,17 +31,17 @@ const int leftLedPin = D5;
 const int rightLedPin = D6;
 
 const std::map<Command, int> commandToLedPin = {
-  { Command::UpPulse, upLedPin },
-  { Command::DownPulse, downLedPin },
-  { Command::LeftPulse, leftLedPin },
-  { Command::RightPulse, rightLedPin }
+  { Command::UpOn, upLedPin },
+  { Command::DownOn, downLedPin },
+  { Command::LeftOn, leftLedPin },
+  { Command::RightOn, rightLedPin }
 };
 
 const std::vector<Command> pulseCommands = {
-  Command::UpPulse,
-  Command::DownPulse,
-  Command::LeftPulse,
-  Command::RightPulse
+  Command::UpOn,
+  Command::DownOn,
+  Command::LeftOn,
+  Command::RightOn
 };
 
 const std::map<Notification, std::string> notificationToString = {
@@ -51,21 +51,18 @@ const std::map<Notification, std::string> notificationToString = {
 
 const int oneSecond = 1000;
 const int oneMinute = oneSecond * 60;
-const int sleepTime = oneMinute * 3;
+const int sleepTime = oneMinute * 2;
 
 // function declarations
 Command parseCommand(const std::string& value);
 void setAllLedsOff();
 void setAllLedsOn();
-void enableLedWithTimerByCommand(Command command);
 void goToSleep();
 bool isPulseCommand(Command cmd);
 
 // global variables
 BLEAdvertising *pAdvertising = nullptr;
 BLECharacteristic *pCharacteristic = nullptr;
-Command activeCommand = Command::None;
-unsigned long ledOnTime = 0;
 unsigned long lastActivityTime = 0;
 
 // callbacks for connecting and disconnecting BLE clients
@@ -91,7 +88,15 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
         Command command = parseCommand(value);
 
         if (isPulseCommand(command))
-          enableLedWithTimerByCommand(command);
+        {
+          setAllLedsOff();
+          auto entry = commandToLedPin.find(command);
+          if (entry != commandToLedPin.end()) {
+            digitalWrite(entry->second, HIGH);
+            pCharacteristic->setValue(notificationToString.at(Notification::LedOn));
+            pCharacteristic->notify();
+          }
+        }
         else if (command == Command::ToggleAllOn)
         {
           setAllLedsOn();
@@ -110,10 +115,10 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
 };
 
 Command parseCommand(const std::string& value) {
-    if (value == "UpPulse") return Command::UpPulse;
-    if (value == "DownPulse") return Command::DownPulse;
-    if (value == "LeftPulse") return Command::LeftPulse;
-    if (value == "RightPulse") return Command::RightPulse;
+    if (value == "UpOn") return Command::UpOn;
+    if (value == "DownOn") return Command::DownOn;
+    if (value == "LeftOn") return Command::LeftOn;
+    if (value == "RightOn") return Command::RightOn;
     if (value == "ToggleAllOn") return Command::ToggleAllOn;
     return Command::None;
 }
@@ -134,21 +139,6 @@ void setAllLedsOn() {
 
 bool isPulseCommand(Command cmd) {
   return std::find(pulseCommands.begin(), pulseCommands.end(), cmd) != pulseCommands.end();
-}
-
-void enableLedWithTimerByCommand(Command command) {
-  setAllLedsOff();
-
-  auto entry = commandToLedPin.find(command);
-  if (entry != commandToLedPin.end()) {
-    digitalWrite(entry->second, HIGH);
-    if (pCharacteristic) {
-      pCharacteristic->setValue(notificationToString.at(Notification::LedOn));
-      pCharacteristic->notify();
-    }
-    activeCommand = command;
-    ledOnTime = millis();
-  }
 }
 
 void goToSleep() {
@@ -194,21 +184,6 @@ void loop() {
   auto elapsedTime = millis() - lastActivityTime;
   if (elapsedTime > sleepTime) {
     goToSleep();
-  }
-
-  // Disable LED after one second 
-  if (isPulseCommand(activeCommand)) {
-    if (millis() - ledOnTime >= oneSecond) {
-      auto entry = commandToLedPin.find(activeCommand);
-      if (entry != commandToLedPin.end()) {
-        digitalWrite(entry->second, LOW);
-      }
-      activeCommand = Command::None;
-      if (pCharacteristic) {
-        pCharacteristic->setValue(notificationToString.at(Notification::LedOff));
-        pCharacteristic->notify();
-      }
-    }
   }
 
   delay(10);

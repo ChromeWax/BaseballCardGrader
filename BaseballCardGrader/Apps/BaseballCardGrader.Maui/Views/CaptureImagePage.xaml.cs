@@ -16,10 +16,10 @@ public partial class CaptureImagePage : ContentPage, IDisposable
     
     private readonly Dictionary<ImagePosition, BluetoothCommand> _imagePositionToCommand = new()
     {
-        { ImagePosition.Top, BluetoothCommand.UpPulse },
-        { ImagePosition.Bottom, BluetoothCommand.DownPulse },
-        { ImagePosition.Left, BluetoothCommand.LeftPulse },
-        { ImagePosition.Right, BluetoothCommand.RightPulse }
+        { ImagePosition.Top, BluetoothCommand.UpOn },
+        { ImagePosition.Bottom, BluetoothCommand.DownOn },
+        { ImagePosition.Left, BluetoothCommand.LeftOn },
+        { ImagePosition.Right, BluetoothCommand.RightOn }
     };
     
     private TaskCompletionSource<BluetoothNotificationType>? _notificationTcs;
@@ -156,9 +156,6 @@ public partial class CaptureImagePage : ContentPage, IDisposable
         // Wait for the ESP32 to confirm the led has turned on
         await _notificationTcs.Task;
         
-        // Start listening for led off notification
-        _notificationTcs = new TaskCompletionSource<BluetoothNotificationType>();
-
         // Captures the image
         await Task.Delay(TimeSpan.FromMilliseconds(300));
         var captureImageCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
@@ -168,6 +165,12 @@ public partial class CaptureImagePage : ContentPage, IDisposable
         var skBitmap = SKBitmap.Decode(stream);
         skBitmap = ImageConversion.RotateClockwise(skBitmap);
         _applicationState.ImagePositionToSkBitmap[imagePosition] = skBitmap;
+        
+        // Start listening for led off notification
+        _notificationTcs = new TaskCompletionSource<BluetoothNotificationType>();
+        
+        // Tells the ESP32 to turn on the led 
+        await _esp32BluetoothService.SendCommandToEsp32(BluetoothCommand.None);
 
         // Waits for the ESP32 to confirm the led has turned off
         await _notificationTcs.Task;
