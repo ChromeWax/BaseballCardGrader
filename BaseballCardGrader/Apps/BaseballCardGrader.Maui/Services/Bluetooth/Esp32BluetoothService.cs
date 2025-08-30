@@ -126,10 +126,26 @@ public class Esp32BluetoothService : IEsp32BluetoothService
         }
     }
 
-    private void OnDeviceDisconnected(object? sender, DeviceEventArgs e)
+    private async void OnDeviceDisconnected(object? sender, DeviceEventArgs e)
     {
         if (_connectedDevice != null && e.Device.Id == _connectedDevice.Id)
         {
+            if (_connectedCharacteristic != null)
+            {
+                try
+                {
+                    _connectedCharacteristic.ValueUpdated -= OnCharacteristicValueChanged;
+                    if (_connectedCharacteristic.CanUpdate)
+                    {
+                        await _connectedCharacteristic.StopUpdatesAsync();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // ignored
+                }
+            }
+            
             _connectedDevice = null;
             _connectedService = null;
             _connectedCharacteristic = null;

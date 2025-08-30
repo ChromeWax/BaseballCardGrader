@@ -8,6 +8,7 @@
 @using ImageProcessor.Features.AnnotateImageForDefects
 @using Mediator
 @using SkiaSharp
+@implements IDisposable
 
 @inject ISender Sender
 @inject ApplicationState ApplicationState
@@ -156,4 +157,13 @@ else
         ApplicationState.PipelineStep = PipelineStep.ConnectToEsp32;
         NavigationManager.NavigateTo("/");
     }
+
+    public void Dispose()
+    {
+        _normalMapBitmap?.Dispose();
+        _annotatedBitmap?.Dispose();
+        _normalMapBitmap = null;
+        _annotatedBitmap = null;
+    }
+
 }
