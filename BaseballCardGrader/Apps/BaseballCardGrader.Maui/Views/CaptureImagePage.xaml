@@ -18,7 +18,7 @@
             Grid.Column="0"
             Grid.Row="1"
             Minimum="1"
-            Maximum="5"
+            Maximum="1.5"
             ValueChanged="OnZoomSliderValueChanged"
             VerticalOptions="Center"
             Margin="10,0"/>

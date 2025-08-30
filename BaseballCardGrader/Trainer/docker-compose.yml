@@ -7,7 +7,7 @@ services:
       - ./dataset:/app/dataset
       - ./checkpoint:/app/checkpoint
     command: >
-      sh -c "python train_model.py ./dataset/processed ./checkpoint && 
+      sh -c "python train_model.py ./dataset/ ./checkpoint && 
       python convert_to_onnx.py ./checkpoint/"
     deploy:
       resources:

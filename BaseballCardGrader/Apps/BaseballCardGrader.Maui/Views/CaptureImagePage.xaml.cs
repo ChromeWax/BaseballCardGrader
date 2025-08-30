@@ -30,24 +30,31 @@ public partial class CaptureImagePage : ContentPage, IDisposable
         _applicationState = applicationState;
         _navigationManager = navigationManager;
         _esp32BluetoothService = esp32BluetoothService;
+        
+        ClearStoredBitmaps();
 
         if (_esp32BluetoothService.ConnectionState != BluetoothConnectionState.Connected)
         {
             NavigateOutOfPage(PipelineStep.ConnectToEsp32);
-            return;
         }
-        
-        _esp32BluetoothService.OnNotification += OnNotification;
-        _esp32BluetoothService.OnConnectionStateChanged += OnConnectionStateChanged;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
         
+        _esp32BluetoothService.OnNotification += OnNotification;
+        _esp32BluetoothService.OnConnectionStateChanged += OnConnectionStateChanged;
+        
         await SelectDefaultCamera();
-
         await TurnOnAllLights();
+    }
+    
+    protected override void OnDisappearing()
+    {
+        _esp32BluetoothService.OnNotification -= OnNotification;
+        _esp32BluetoothService.OnConnectionStateChanged -= OnConnectionStateChanged;
+        base.OnDisappearing();
     }
     
     private async Task SelectDefaultCamera()
@@ -137,7 +144,9 @@ public partial class CaptureImagePage : ContentPage, IDisposable
         
         // Saves image to the application state
         var skBitmap = SKBitmap.Decode(stream);
-        _applicationState.ImagePositionToSkBitmap[ImagePosition.All] = skBitmap;
+        var rotatedSkBitmap = ImageConversion.RotateClockwise(skBitmap);
+        skBitmap.Dispose();
+        _applicationState.ImagePositionToSkBitmap[ImagePosition.All] = rotatedSkBitmap;
         
         // Turn all leds off
         await TurnOffAllLights();
@@ -163,8 +172,9 @@ public partial class CaptureImagePage : ContentPage, IDisposable
         
         // Saves image to the application state
         var skBitmap = SKBitmap.Decode(stream);
-        skBitmap = ImageConversion.RotateClockwise(skBitmap);
-        _applicationState.ImagePositionToSkBitmap[imagePosition] = skBitmap;
+        var rotatedSkBitmap = ImageConversion.RotateClockwise(skBitmap);
+        skBitmap.Dispose();
+        _applicationState.ImagePositionToSkBitmap[imagePosition] = rotatedSkBitmap;
         
         // Start listening for led off notification
         _notificationTcs = new TaskCompletionSource<BluetoothNotificationType>();
@@ -174,6 +184,15 @@ public partial class CaptureImagePage : ContentPage, IDisposable
 
         // Waits for the ESP32 to confirm the led has turned off
         await _notificationTcs.Task;
+    }
+    
+    private void ClearStoredBitmaps()
+    {
+        foreach (var skBitmap in _applicationState.ImagePositionToSkBitmap.Values)
+        {
+            skBitmap.Dispose();
+        }
+        _applicationState.ImagePositionToSkBitmap.Clear();
     }
     
     private void NavigateOutOfPage(PipelineStep step)

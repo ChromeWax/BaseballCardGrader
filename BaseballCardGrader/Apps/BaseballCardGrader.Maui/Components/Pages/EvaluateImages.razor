@@ -5,9 +5,11 @@
 @using BaseballCardGrader.Maui.State
 @using CommunityToolkit.Maui.Alerts
 @using CommunityToolkit.Maui.Storage
-@using ImageProcessor.Features.AnnotateImageForDefects
+@using ImageProcessor.Features.AnnotateNormalImageForDefects
+@using ImageProcessor.Features.ConvertFourImagesToNormalMap
 @using Mediator
 @using SkiaSharp
+@implements IDisposable
 
 @inject ISender Sender
 @inject ApplicationState ApplicationState
@@ -106,6 +108,7 @@ else
         }
         
         // Load images
+        var allImage = ApplicationState.ImagePositionToSkBitmap[ImagePosition.All];
         var topImage = ApplicationState.ImagePositionToSkBitmap[ImagePosition.Top];
         var rightImage = ApplicationState.ImagePositionToSkBitmap[ImagePosition.Right];
         var bottomImage = ApplicationState.ImagePositionToSkBitmap[ImagePosition.Bottom];
@@ -116,12 +119,14 @@ else
         using var onnxMemoryStream = new MemoryStream();
         await assetStream.CopyToAsync(onnxMemoryStream);
 
-        _normalMapBitmap = await ImageEffects.CreateNormalImage(topImage, rightImage, bottomImage, leftImage);
+        _normalMapBitmap = await Sender.Send(
+            new ConvertFourImagesToNormalMapRequest(topImage, rightImage, bottomImage, leftImage)
+        );
         _normalMapImage = ImageConversion.ConvertImageToBase64(_normalMapBitmap);
         
         // Annotate overlay image
         _annotatedBitmap = await Sender.Send(
-                new AnnotateImageForDefectsRequest(onnxMemoryStream, topImage, rightImage, bottomImage, leftImage)
+            new AnnotateNormalMapForDefectsRequest(onnxMemoryStream, allImage, _normalMapBitmap)
         );
         _annotatedImage = ImageConversion.ConvertImageToBase64(_annotatedBitmap);
         
@@ -156,4 +161,13 @@ else
         ApplicationState.PipelineStep = PipelineStep.ConnectToEsp32;
         NavigationManager.NavigateTo("/");
     }
+
+    public void Dispose()
+    {
+        _normalMapBitmap?.Dispose();
+        _annotatedBitmap?.Dispose();
+        _normalMapBitmap = null;
+        _annotatedBitmap = null;
+    }
+
 }

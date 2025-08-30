@@ -190,6 +190,9 @@ public static class ImageEffects
         var bottomRight = bottomRightTask.Result;
 
         var result = OverlayImages(aboveLeft, bottomRight, 0.5f);
+        
+        aboveLeft.Dispose();
+        bottomRight.Dispose();
 
         return result;
     }
@@ -243,6 +246,9 @@ public static class ImageEffects
         var result = OverlayImages(aboveLeft, bottomRight, 0.5f);
         
         FillBlueChannel(result, 255);
+        
+        aboveLeft.Dispose();
+        bottomRight.Dispose();
 
         return result;
     }
