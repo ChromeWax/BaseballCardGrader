@@ -9,6 +9,8 @@ namespace BaseballCardGrader.Maui.Services.Bluetooth;
 
 public class Esp32BluetoothService : IEsp32BluetoothService
 {
+    public BluetoothConnectionState ConnectionState { get; private set; }
+    
     public event Action<BluetoothConnectionState>? OnConnectionStateChanged;
     public event Action<BluetoothNotificationType>? OnNotification;
     public event Action<string>? OnError;
@@ -28,6 +30,7 @@ public class Esp32BluetoothService : IEsp32BluetoothService
         _ble = CrossBluetoothLE.Current;
         _adapter = CrossBluetoothLE.Current.Adapter;
         _adapter.DeviceDiscovered += OnDeviceDiscovered;
+        _adapter.DeviceDisconnected += OnDeviceDisconnected;
     }
 
     private async Task<bool> EnsurePermissionsAsync()
@@ -69,7 +72,7 @@ public class Esp32BluetoothService : IEsp32BluetoothService
         if (!await EnsurePermissionsAsync()) return;
         if (!EnsureBluetoothOn()) return;
 
-        OnConnectionStateChanged?.Invoke(BluetoothConnectionState.Scanning);
+        ConnectionStateHasChanged(BluetoothConnectionState.Scanning);
 
         var filter = new ScanFilterOptions
         {
@@ -80,7 +83,7 @@ public class Esp32BluetoothService : IEsp32BluetoothService
 
         if (_adapter.ConnectedDevices.Count == 0)
         {
-            OnConnectionStateChanged?.Invoke(BluetoothConnectionState.Disconnected);
+            ConnectionStateHasChanged(BluetoothConnectionState.Disconnected);
             OnError?.Invoke("No Esp32 found. Make sure it’s powered and in range.");
         }
     }
@@ -113,16 +116,28 @@ public class Esp32BluetoothService : IEsp32BluetoothService
                 await _connectedCharacteristic.StartUpdatesAsync();
             }
 
-            OnConnectionStateChanged?.Invoke(BluetoothConnectionState.Connected);
+            ConnectionStateHasChanged(BluetoothConnectionState.Connected);
         }
         catch (DeviceConnectionException)
         {
             await _adapter.StopScanningForDevicesAsync();
-            OnConnectionStateChanged?.Invoke(BluetoothConnectionState.Disconnected);
+            ConnectionStateHasChanged(BluetoothConnectionState.Disconnected);
             OnError?.Invoke("Esp32 found but could not connect.");
         }
     }
 
+    private void OnDeviceDisconnected(object? sender, DeviceEventArgs e)
+    {
+        if (_connectedDevice != null && e.Device.Id == _connectedDevice.Id)
+        {
+            _connectedDevice = null;
+            _connectedService = null;
+            _connectedCharacteristic = null;
+            ConnectionStateHasChanged(BluetoothConnectionState.Disconnected);
+            OnError?.Invoke("ESP32 disconnected or turned off.");
+        }
+    }
+    
     private void OnCharacteristicValueChanged(object? sender, CharacteristicUpdatedEventArgs e)
     {
         var value = Encoding.UTF8.GetString(e.Characteristic.Value);
@@ -130,10 +145,10 @@ public class Esp32BluetoothService : IEsp32BluetoothService
             OnNotification?.Invoke(note);
     }
 
-    public async Task SendCommandToEsp32(string command)
+    public async Task SendCommandToEsp32(BluetoothCommand command)
     {
         if (_connectedCharacteristic == null) return;
-        await _connectedCharacteristic.WriteAsync(Encoding.UTF8.GetBytes(command));
+        await _connectedCharacteristic.WriteAsync(Encoding.UTF8.GetBytes(command.ToString()));
     }
 
     public async Task DisconnectAsync()
@@ -152,14 +167,21 @@ public class Esp32BluetoothService : IEsp32BluetoothService
         _connectedService = null;
         _connectedCharacteristic = null;
 
-        OnConnectionStateChanged?.Invoke(BluetoothConnectionState.Disconnected);
+        ConnectionStateHasChanged(BluetoothConnectionState.Disconnected);
         OnError?.Invoke(string.Empty);
     }
 
     public void Dispose()
     {
         _adapter.DeviceDiscovered -= OnDeviceDiscovered;
+        _adapter.DeviceDisconnected -= OnDeviceDisconnected;
         if (_connectedCharacteristic != null)
             _connectedCharacteristic.ValueUpdated -= OnCharacteristicValueChanged;
+    }
+    
+    private void ConnectionStateHasChanged(BluetoothConnectionState state)
+    {
+        ConnectionState = state;
+        OnConnectionStateChanged?.Invoke(ConnectionState);
     }
 }
