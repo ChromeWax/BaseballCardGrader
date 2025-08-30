@@ -1,21 +1,12 @@
-using ImageProcessor.Helper.ImageEffects;
-using Mediator;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using SkiaSharp;
 
-namespace ImageProcessor.Features.AnnotateImageForDefects;
+namespace ImageProcessor.Helper.Inference;
 
-public class AnnotateImageForDefectsRequestHandler : IRequestHandler<AnnotateImageForDefectsRequest, SKBitmap>
+public static class AnnotateImage
 {
-    public async Task<SKBitmap> Handle(AnnotateImageForDefectsRequest request, CancellationToken cancellationToken)
-    {
-        var overlayImage = await ImageEffects.CreateOverlayImage(request.topImage, request.rightImage, request.bottomImage, request.leftImage);
-        var annotatedImage = await AnnotateImage(request.ModelMemoryStream, request.topImage, overlayImage);
-        return annotatedImage;
-    }
-    
-    private async Task<SKBitmap> AnnotateImage(MemoryStream modelMemoryStream, SKBitmap originalImage, SKBitmap overlayImage)
+    public static SKBitmap AnnotateImageWithSegmentationMask(MemoryStream modelMemoryStream, SKBitmap originalImage, SKBitmap normalMap)
     {
         try
         {
@@ -23,8 +14,8 @@ public class AnnotateImageForDefectsRequestHandler : IRequestHandler<AnnotateIma
             int originalHeight = originalImage.Height;
 
             // Resize images for model input
-            var resizedOriginal = ImageEffects.ResizeBitmap(originalImage, Constants.ResizeImageWidth, Constants.ResizeImageHeight);
-            var resizedOverlay = ImageEffects.ResizeBitmap(overlayImage, Constants.ResizeImageWidth, Constants.ResizeImageHeight);
+            var resizedOriginal = ImageEffects.ImageEffects.ResizeBitmap(originalImage, Constants.ResizeImageWidth, Constants.ResizeImageHeight);
+            var resizedOverlay = ImageEffects.ImageEffects.ResizeBitmap(normalMap, Constants.ResizeImageWidth, Constants.ResizeImageHeight);
 
             // Prepare tensor input
             var input = new DenseTensor<float>(new[] { 
@@ -81,7 +72,7 @@ public class AnnotateImageForDefectsRequestHandler : IRequestHandler<AnnotateIma
             resizedOriginal.Pixels = annotatedPixels;
 
             // Resize back to original size
-            var finalImage = ImageEffects.ResizeBitmap(resizedOriginal, originalWidth, originalHeight);
+            var finalImage = ImageEffects.ImageEffects.ResizeBitmap(resizedOriginal, originalWidth, originalHeight);
 
             resizedOverlay.Dispose();
             resizedOriginal.Dispose();
@@ -93,4 +84,5 @@ public class AnnotateImageForDefectsRequestHandler : IRequestHandler<AnnotateIma
             return originalImage;
         }
     }
+    
 }

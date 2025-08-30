@@ -1,4 +1,4 @@
-namespace ImageProcessor.Features.AnnotateImageForDefects;
+namespace ImageProcessor.Helper.Inference;
 
 public static class Constants
 {
