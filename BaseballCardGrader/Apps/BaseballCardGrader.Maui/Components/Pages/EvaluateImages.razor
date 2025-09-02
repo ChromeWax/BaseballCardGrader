@@ -94,7 +94,7 @@ else
     private SKBitmap? _annotatedBitmap;
     private string? _error;
     
-    private bool IsEvaluating => string.IsNullOrEmpty(_annotatedImage) && string.IsNullOrEmpty(_normalMapImage)  && string.IsNullOrEmpty(_error);
+    private bool IsEvaluating => string.IsNullOrEmpty(_annotatedImage) && string.IsNullOrEmpty(_error);
     
     protected override async Task OnInitializedAsync()
     {
