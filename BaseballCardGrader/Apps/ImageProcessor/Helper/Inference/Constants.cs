@@ -13,5 +13,5 @@ public static class Constants
     public const int CurrentBatch = 0;
     public const int BatchSize = 1;
     public const int MaskIntensity = 100;
-    public const float ScoreThreshold = 0.5f;
+    public const float ScoreThreshold = 0.7f;
 }
