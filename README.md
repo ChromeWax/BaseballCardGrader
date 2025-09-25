@@ -1,8 +1,8 @@
 # Baseball Card Grader
 
-The BaseBall Card Grader project goal is to find and detect defects in a card's surface. The project is a combination of a physical device and a mobile app. The physical device is a box that contains 4 lights and an ESP32. The user can place a card into the box, connect the box to the app via bluetooth, and then on the app evaluate the image.
+The Baseball Card Grader project goal is to identify and detect defects on a card's surface. The project is a combination of a physical device and a mobile app. The physical device is a box that contains four lights and an ESP32. The user can place a card into the box, connect the box to the app via Bluetooth, and then evaluate the image on the app.
 
-The general process is to take 4 images, each taken with a different lighting position, composite those 4 images into a normal map, which represents 3D detail, and then run our model on the normal map for the annotated image.
+The general process involves taking four images, each with a different lighting position, and then compositing those four images into a normal map that represents 3D detail. This normal map is then used to run our model on the annotated image.
 
 https://github.com/user-attachments/assets/8a07d7a1-3c0c-4498-98e6-cceb2a37a0a0
 
@@ -10,18 +10,18 @@ https://github.com/user-attachments/assets/8a07d7a1-3c0c-4498-98e6-cceb2a37a0a0
 This app was built with MAUI Blazor Hybrid with .NET 9. Visit the path `BaseballCardGrader/Apps` for the relevant code to this section. 
 
 ### Image Processor Project
-This project is responsible for compositing the 4 images into a normal map and inferencing the ONNX model for annotations. The SkiaSharp library was the only one found to be performant on mobile.
+This project is responsible for compositing the four images into a normal map and inferencing the ONNX model for annotations. The SkiaSharp library was the only one found to be performant on mobile.
 
 #### Helpful Guides
-The following guides are useful for the process of creating normal map and running ONNX inferfence.
+The following guides help create a normal map and run ONNX inference.
 - [ONNX Inference](https://onnxruntime.ai/docs/tutorials/csharp/fasterrcnn_csharp.html)
 - [Normal Map Process](http://zarria.net/nrmphoto/nrmphoto.html)
 
 ### MAUI Blazor Hybrid App
-This project utilizes the Image Processor project for image processing. This will connect to the ESP32 device, take 4 images with the smartphone's camera, composite those images into a normal map, and then run the ONNX model on them. This project uses the MAUI Blazor Hybrid template for cross-platform support.
+This project utilizes the Image Processor project for image processing. This will connect to the ESP32 device, take four images with the smartphone's camera, composite those images into a normal map, and then run the ONNX model on them. This project uses the MAUI Blazor Hybrid template for cross-platform support.
 
 #### Helpful Guides
-The following guide is useful for connecting the mobile app to the ESP32 via Bluetooth.
+The following guide helps connect the mobile app to the ESP32 via Bluetooth.
 - [MAUI Bluetooth](https://github.com/dotnet-bluetooth-le/dotnet-bluetooth-le)
 
 ### Requirements
@@ -29,7 +29,7 @@ The following guide is useful for connecting the mobile app to the ESP32 via Blu
 - MAUI workloads
 
 #### Helpful Guides
-The following guide is useful for installing MAUI.
+The following guide is practical for installing MAUI.
 - [Installing Maui](https://learn.microsoft.com/en-us/dotnet/maui/get-started/installation?view=net-maui-9.0&tabs=visual-studio)
 
 
@@ -50,9 +50,9 @@ In the `BaseballCardGrader/Trainer` directory, run the following command.
 ```
 docker compose up
 ```
-This will create a PyTorch container with CUDA support, copy the relevant python files over, install any dependencies, map the dataset and checkpoint folders to the container, run the script to create the model, and then export the script to the ONNX format.
+This will create a PyTorch container with CUDA support, copy the relevant Python files over, install any dependencies, map the dataset and checkpoint folders to the container, run the script to create the model, and then export the script to the ONNX format.
 
-The ONNX model will be stored in the path `BaseballCardGrader/Trainer/checkpoint` after training.
+The ONNX model will be stored in the path `BaseballCardGrader/Trainer/checkpoint` after training is complete.
 
 #### Requirements:
 - Nvidia GPU that supports CUDA
@@ -60,7 +60,7 @@ The ONNX model will be stored in the path `BaseballCardGrader/Trainer/checkpoint
 - Windows 11 with WSL2 enabled
 
 ### Helpful Guides
-The following guides are helpful for training and exporting model.
+The following guides are helpful for training and exporting the model.
 - [Train Model](https://christianjmills.com/posts/pytorch-train-mask-rcnn-tutorial/)
 - [Export To ONNX](https://christianjmills.com/posts/pytorch-train-mask-rcnn-tutorial/onnx-export/)
 
@@ -69,7 +69,7 @@ The following guides are helpful for training and exporting model.
 The files in `BaseballCardGrader/Device/cad` can be used to 3D print the box.
 
 #### Caveats
-- There is no easy way to attach the lid to the box. An easy solution is to cut the socket on the right side of the box in half. That way the lid just sits on top.
+- There is no easy way to attach the lid to the box. An easy solution is to cut the socket on the right side of the box in half. That way, the lid sits on top of it.
 - The indent in the middle of the box is a design flaw. The "Box Fix" can be used to fill in the indent.
 
 ### ESP32
@@ -91,10 +91,10 @@ The following components were used.
 - [Battery Amazon Link](https://www.amazon.com/dp/B08T6GT7DV?ref=ppx_yo2ov_dt_b_fed_asin_title)
 
 #### Updating Firmware
-PlatformIO is used over the Arduino IDE for better version control support. It can be used to upload newer firmware to the ESP32 device.
+PlatformIO is used in place of the Arduino IDE for improved version control support. It can be used to upload newer Firmware to the ESP32 device.
 
 ##### Helpful Guides
-The following guides are helpful for learning PlatformIO and how to code for ESP32.
+The following guides help you learn PlatformIO and code for ESP32.
 - [PlatformIO Tutorial](https://www.youtube.com/watch?v=QMYhVqjBhKQ&t=693s)
 - [ESP32 Guide](https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_Started/)
 
