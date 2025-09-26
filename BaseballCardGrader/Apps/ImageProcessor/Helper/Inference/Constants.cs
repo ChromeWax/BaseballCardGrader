@@ -1,5 +1,8 @@
 namespace ImageProcessor.Helper.Inference;
 
+/// <summary>
+/// Constants used for image processing and model inference.
+/// </summary>
 public static class Constants
 {
     public const int ResizeImageWidth = 800;
