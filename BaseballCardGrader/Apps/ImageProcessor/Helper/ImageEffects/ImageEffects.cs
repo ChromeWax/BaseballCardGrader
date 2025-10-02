@@ -8,10 +8,10 @@ public static class ImageEffects
     /// <summary>
     /// Creates an RGB image from three separate grayscale images representing the red, green, and blue channels.
     /// </summary>
-    /// <param name="redChannel"></param>
-    /// <param name="greenChannel"></param>
-    /// <param name="width"></param>
-    /// <param name="height"></param>
+    /// <param name="redChannel">Grayscale image for use in red channel.</param>
+    /// <param name="greenChannel">Grayscale image for use in green channel.</param>
+    /// <param name="width">Image width size.</param>
+    /// <param name="height">Image height size.</param>
     /// <returns></returns>
     public static SKBitmap CreateRedGreenImageFromTwoGrayscaleImages(byte[] redChannel, byte[] greenChannel, int width, int height)
     {
@@ -32,8 +32,8 @@ public static class ImageEffects
     /// <summary>
     /// Converts an SKBitmap to a grayscale byte array using the luminosity method.
     /// </summary>
-    /// <param name="bmp"></param>
-    /// <returns></returns>
+    /// <param name="bmp"><see cref="SKBitmap"/> that will be converted into bytes in grayscale format.</param>
+    /// <returns>Array of bytes that represents image in grayscale.</returns>
     public static byte[] ToGrayscaleBytes(SKBitmap bmp)
     {
         int width = bmp.Width;
@@ -55,10 +55,10 @@ public static class ImageEffects
     /// <summary>
     /// Resizes a bitmap to the specified width and height.
     /// </summary>
-    /// <param name="src"></param>
-    /// <param name="width"></param>
-    /// <param name="height"></param>
-    /// <returns></returns>
+    /// <param name="src"><see cref="SKBitmap"/> to be resized.</param>
+    /// <param name="width">Resize width size.</param>
+    /// <param name="height">Resize width height.</param>
+    /// <returns>Returns resized <see cref="SKBitmap"/> image.</returns>
     public static SKBitmap ResizeBitmap(SKBitmap src, int width, int height)
     {
         var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Opaque);
@@ -68,6 +68,11 @@ public static class ImageEffects
     #endregion
     
     #region Fill Color Channels
+    /// <summary>
+    /// Fills the blue channel of an SKBitmap with a specified value.
+    /// </summary>
+    /// <param name="bitmap"><see cref="SKBitmap"/> to be transformed.</param>
+    /// <param name="blueValue">Blue value to fill image's blue channel.</param>
     public static void FillBlueChannel(SKBitmap bitmap, byte blueValue)
     {
         var pixels = bitmap.Pixels;
@@ -86,9 +91,9 @@ public static class ImageEffects
     /// <summary>
     /// Takes an image and applies output levels adjustment.
     /// </summary>
-    /// <param name="source"></param>
-    /// <param name="outputMin"></param>
-    /// <param name="outputMax"></param>
+    /// <param name="source"><see cref="SKBitmap"/> to be transformed.</param>
+    /// <param name="outputMin">Output level min.</param>
+    /// <param name="outputMax">Output level max.</param>
     public static void ApplyOutputLevels(SKBitmap source, int outputMin, int outputMax)
     {
         var pixels = source.Pixels;
@@ -111,13 +116,6 @@ public static class ImageEffects
         source.Pixels = pixels;
     }
 
-    /// <summary>
-    ///  Adjusts a single color channel based on output levels.
-    /// </summary>
-    /// <param name="value"></param>
-    /// <param name="outputMinNormalized"></param>
-    /// <param name="scale"></param>
-    /// <returns></returns>
     private static byte AdjustChannel(byte value, float outputMinNormalized, float scale)
     {
         var channelValueNormalized = value / 255f;
@@ -130,10 +128,10 @@ public static class ImageEffects
     /// <summary>
     /// Overlays one image on top of another with specified alpha transparency.
     /// </summary>
-    /// <param name="baseImage"></param>
-    /// <param name="overlayImage"></param>
-    /// <param name="alpha"></param>
-    /// <returns></returns>
+    /// <param name="baseImage"><see cref="SKBitmap"/> to be on the bottom layer.</param>
+    /// <param name="overlayImage"><see cref="SKBitmap"/> to be on top as the overlay layer.</param>
+    /// <param name="alpha">Amount to set overlay.</param>
+    /// <returns>Transformed <see cref="SKBitmap"/> with overlayed images.</returns>
     public static SKBitmap OverlayImages(SKBitmap baseImage, SKBitmap overlayImage, float alpha)
     {
         var result = baseImage.Copy();
@@ -151,12 +149,11 @@ public static class ImageEffects
     /// <summary>
     /// Creates an overlay image from four directional grayscale images (top, right, bottom, left).
     /// </summary>
-    /// <param name="topImage"></param>
-    /// <param name="rightImage"></param>
-    /// <param name="bottomImage"></param>
-    /// <param name="leftImage"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentException"></exception>
+    /// <param name="topImage">Top original RGB image.</param>
+    /// <param name="rightImage">Right original RGB image.</param>
+    /// <param name="bottomImage">Bottom original RGB image.</param>
+    /// <param name="leftImage">Left original RGB image.</param>
+    /// <returns>Overlay image in <see cref="SKBitmap"/> format.</returns>
     public static async Task<SKBitmap> CreateOverlayImage(SKBitmap topImage, SKBitmap rightImage, SKBitmap bottomImage, SKBitmap leftImage)
     {
         var width = topImage.Width;
@@ -200,14 +197,13 @@ public static class ImageEffects
     
     #region Create Normal Image from Four Images
     /// <summary>
-    /// Creates an overlay image from four directional grayscale images (top, right, bottom, left).
+    /// Creates a normal image from four directional grayscale images (top, right, bottom, left).
     /// </summary>
-    /// <param name="topImage"></param>
-    /// <param name="rightImage"></param>
-    /// <param name="bottomImage"></param>
-    /// <param name="leftImage"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentException"></exception>
+    /// <param name="topImage">Top original RGB image.</param>
+    /// <param name="rightImage">Right original RGB image.</param>
+    /// <param name="bottomImage">Bottom original RGB image.</param>
+    /// <param name="leftImage">Left original RGB image.</param>
+    /// <returns>Normal image in <see cref="SKBitmap"/> format.</returns>
     public static async Task<SKBitmap> CreateNormalImage(SKBitmap topImage, SKBitmap rightImage, SKBitmap bottomImage, SKBitmap leftImage)
     {
         var width = topImage.Width;

@@ -8,7 +8,7 @@ public class ConvertFourImagesToNormalMapRequestHandler : IRequestHandler<Conver
 {
     public async Task<SKBitmap> Handle(ConvertFourImagesToNormalMapRequest request, CancellationToken cancellationToken)
     {
-        return await ImageEffects.CreateNormalImage(request.topImage, request.rightImage, request.bottomImage, request.leftImage);
+        return await ImageEffects.CreateNormalImage(request.TopImage, request.RightImage, request.BottomImage, request.LeftImage);
     }
 }
 

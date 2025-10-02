@@ -2,8 +2,17 @@ using SkiaSharp;
 
 namespace BaseballCardGrader.Maui.Helpers;
 
+/// <summary>
+/// Helper class for image conversion and manipulation.
+/// </summary>
 public static class ImageConversion
 {
+    /// <summary>
+    /// Converts an SKBitmap to a Base64 string.
+    /// Useful for embedding images in HTML or JSON.
+    /// </summary>
+    /// <param name="bitmap"><see cref="SKBitmap"/> to be converted.</param>
+    /// <returns>Image in base64 string form.</returns>
     public static string ConvertImageToBase64(SKBitmap bitmap)
     {
         using var image = SKImage.FromBitmap(bitmap);
@@ -13,6 +22,11 @@ public static class ImageConversion
         return Convert.ToBase64String(ms.ToArray());
     }
     
+    /// <summary>
+    /// Rotates an SKBitmap 90 degrees clockwise.
+    /// </summary>
+    /// <param name="bitmap"><see cref="SKBitmap"/> to be transformed.</param>
+    /// <returns>Transformed <see cref="SKBitmap"/>.</returns>
     public static SKBitmap RotateClockwise(SKBitmap bitmap)
     {
         var rotated = new SKBitmap(bitmap.Height, bitmap.Width);
