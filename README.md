@@ -1,6 +1,6 @@
 # Baseball Card Grader
 
-The Baseball Card Grader project goal is to identify and detect defects on a card's surface. The project is a combination of a physical device and a mobile app. The physical device is a box that contains four lights and an ESP32. The user can place a card into the box, connect the box to the app via Bluetooth, and then evaluate the image on the app.
+Identify and detect defects on a card's surface. The project is a combination of a physical device and a mobile app. The physical device is a box that contains four lights and an ESP32. The user can place a card into the box, connect the box to the app via Bluetooth, and then evaluate the image on the app.
 
 The general process involves taking four images, each with a different lighting position, and then compositing those four images into a normal map that represents 3D detail. This normal map is then used to run our model on the annotated image.
 
